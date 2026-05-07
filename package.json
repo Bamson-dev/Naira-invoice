@@ -2,6 +2,7 @@
   "name": "naira-invoice",
   "version": "1.0.0",
   "description": "Nigerian invoice and receipt generator",
+  "author": "Bamidele Matthew",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
