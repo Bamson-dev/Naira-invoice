@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoices - NairaInvoice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/premium.css">
+</head>
+<body class="finops-dashboard-page">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">NairaInvoice</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="create-invoice.html">Create Invoice</a></li>
+        <li><a href="invoices.html" class="active">Invoices</a></li>
+        <li><a href="clients.html">Clients</a></li>
+        <li><a href="analytics.html">Analytics</a></li>
+        <li><a href="payments.html">Payments</a></li>
+        <li><a href="portal-preview.html">Shared Invoices</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li><a href="#" id="logout-link">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content finops-main">
+      <header class="finops-topbar">
+        <div>
+          <h1>Invoices</h1>
+          <p class="page-subtitle">Track who has paid, who has viewed, and who needs a reminder.</p>
+        </div>
+        <div class="finops-topbar-actions">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="exportToCSV()">Export CSV</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="window.location.href='create-invoice.html'">+ Create Invoice</button>
+        </div>
+      </header>
+
+      <section class="finops-section">
+        <div class="filters finops-filters-grid">
+          <input type="text" id="search-invoices" placeholder="Search by invoice #, client name, or amount..." class="search-input">
+          <button type="button" id="voice-search-btn" class="btn btn-ghost btn-sm">Voice</button>
+          <select id="status-filter" onchange="applyFilters()">
+            <option value="">All Status</option>
+            <option value="draft">Draft</option>
+            <option value="sent">Sent</option>
+            <option value="viewed">Viewed</option>
+            <option value="paid">Paid</option>
+            <option value="overdue">Overdue</option>
+          </select>
+          <select id="sort-by" onchange="applyFilters()">
+            <option value="date-desc">Newest</option>
+            <option value="date-asc">Oldest</option>
+            <option value="amount-desc">Highest Amount</option>
+            <option value="amount-asc">Lowest Amount</option>
+          </select>
+          <select id="saved-filter" onchange="applySavedFilter(this.value)">
+            <option value="">Saved Filters</option>
+          </select>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="openFiltersSheet()">Filters</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="saveCurrentFilter()">Save Filter</button>
+        </div>
+        <div id="recent-searches" class="recent-searches"></div>
+        <p class="page-subtitle">Tip: select rows to send reminders in bulk. Shortcuts: <strong>/</strong> search, <strong>N</strong> new invoice, <strong>M</strong> mark paid.</p>
+      </section>
+
+      <section class="finops-section">
+        <div class="finops-bulk-bar" id="bulk-bar" style="display:none;">
+          <strong id="bulk-count">0 selected</strong>
+          <button class="btn btn-secondary btn-sm" onclick="bulkWhatsapp()">WhatsApp Reminder</button>
+          <button class="btn btn-ghost btn-sm" onclick="bulkMarkPaid()">Mark Paid</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
+        </div>
+
+        <div class="finops-table-wrap">
+          <table class="finops-table" id="invoices-table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)"></th>
+                <th>Invoice</th>
+                <th>Client</th>
+                <th>Status</th>
+                <th>Viewed</th>
+                <th>Amount</th>
+                <th>Due Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="invoices-table-body"></tbody>
+          </table>
+        </div>
+        <div id="invoices-mobile-list" class="mobile-cards-list"></div>
+      </section>
+
+      <nav class="finops-bottom-nav" aria-label="Mobile">
+        <a href="dashboard.html">Home</a>
+        <a href="invoices.html" class="active">Invoices</a>
+        <a href="create-invoice.html" class="create-tab" aria-label="Create invoice">+</a>
+        <a href="clients.html">Clients</a>
+        <a href="profile.html">Profile</a>
+      </nav>
+    </main>
+  </div>
+
+  <div id="filters-sheet" class="bottom-sheet" style="display:none;">
+    <div class="bottom-sheet-panel">
+      <div class="bottom-sheet-head">
+        <h3>Filters</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeFiltersSheet()">Close</button>
+      </div>
+      <div class="form-group">
+        <label for="sheet-status-filter">Status</label>
+        <select id="sheet-status-filter">
+          <option value="">All Status</option>
+          <option value="draft">Draft</option>
+          <option value="sent">Sent</option>
+          <option value="viewed">Viewed</option>
+          <option value="paid">Paid</option>
+          <option value="overdue">Overdue</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="sheet-sort-by">Sort</label>
+        <select id="sheet-sort-by">
+          <option value="date-desc">Newest</option>
+          <option value="date-asc">Oldest</option>
+          <option value="amount-desc">Highest Amount</option>
+          <option value="amount-asc">Lowest Amount</option>
+        </select>
+      </div>
+      <div class="bottom-sheet-actions">
+        <button class="btn btn-secondary btn-sm" onclick="resetSheetFilters()">Reset</button>
+        <button class="btn btn-primary btn-sm" onclick="applySheetFilters()">Apply Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/onboarding.js"></script>
+  <script src="js/invoices-list.js"></script>
+</body>
+</html>

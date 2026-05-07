@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - NairaInvoice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/premium.css">
+</head>
+<body data-app-page="dashboard" class="finops-dashboard-page">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">NairaInvoice</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html" class="active">Dashboard</a></li>
+        <li><a href="create-invoice.html">Create Invoice</a></li>
+        <li><a href="invoices.html">Invoices</a></li>
+        <li><a href="clients.html">Clients</a></li>
+        <li><a href="analytics.html">Analytics</a></li>
+        <li><a href="payments.html">Payments</a></li>
+        <li><a href="portal-preview.html">Shared Invoices</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li><a href="#" id="logout-link">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content finops-main">
+      <header class="finops-topbar">
+        <div class="finops-search-wrap">
+          <input id="dashboard-search" class="finops-search" type="search" placeholder="Who owes you? Search client, invoice number, or amount..." />
+        </div>
+        <div class="finops-topbar-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="notifications-btn">Notifications</button>
+          <button type="button" class="finops-avatar" aria-label="Profile">DB</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="window.location.href='create-invoice.html'">+ Create Invoice</button>
+        </div>
+      </header>
+      <p class="page-subtitle" style="margin-bottom:10px;">Start with <strong>ACTION REQUIRED</strong> to follow up faster and improve cashflow.</p>
+
+      <section class="finops-kpi-grid" id="kpi-grid"></section>
+
+      <section class="finops-section finops-urgent">
+        <div class="finops-section-header">
+          <h2>ACTION REQUIRED</h2>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="window.location.href='invoices.html?filter=overdue'">View All</button>
+        </div>
+        <div id="action-required-list" class="finops-action-list"></div>
+        <div id="mobile-action-bar" class="mobile-action-bar" style="display:none;"></div>
+      </section>
+
+      <section class="finops-grid-2">
+        <div class="finops-section">
+          <div class="finops-section-header"><h2>Recent Activity</h2></div>
+          <div id="activity-feed" class="finops-activity-feed"></div>
+        </div>
+
+        <div class="finops-section">
+          <div class="finops-section-header"><h2>Recent Invoices</h2></div>
+          <div class="finops-table-wrap">
+            <table class="finops-table">
+              <thead>
+                <tr>
+                  <th>Invoice</th><th>Client</th><th>Status</th><th>Amount</th><th>Due Date</th><th>Viewed</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="recent-invoices-table"></tbody>
+            </table>
+          </div>
+          <div id="recent-invoices-mobile" class="mobile-cards-list"></div>
+        </div>
+      </section>
+
+      <nav class="finops-bottom-nav" aria-label="Mobile">
+        <a href="dashboard.html" class="active">Home</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="create-invoice.html" class="create-tab" aria-label="Create invoice">+</a>
+        <a href="clients.html">Clients</a>
+        <a href="profile.html">Profile</a>
+      </nav>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/onboarding.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - NairaInvoice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/premium.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-box">
+      <h1 class="auth-logo">🧾 NairaInvoice</h1>
+      <p class="auth-subtitle">Professional invoices for Nigerian businesses</p>
+
+      <div class="auth-form">
+        <h2>Sign Up</h2>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="Email" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Password (min 6 chars)" required autocomplete="new-password">
+        </div>
+        <button type="button" id="signup-btn" class="btn btn-primary" style="width:100%;">Sign Up</button>
+        <p class="toggle-text">
+          Already have an account?
+          <a href="login.html">Login</a>
+        </p>
+      </div>
+
+      <div id="message" class="message"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    checkAuth();
+
+    document.getElementById('signup-btn').addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('signup-btn');
+      const msg = document.getElementById('message');
+
+      if (!email || !password) {
+        msg.textContent = 'Please fill in all fields';
+        msg.className = 'message error';
+        return;
+      }
+
+      if (password.length < 6) {
+        msg.textContent = 'Password must be at least 6 characters';
+        msg.className = 'message error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
+
+      const { data, error } = await handleSignup(email, password);
+
+      if (error) {
+        msg.textContent = error.message;
+        msg.className = 'message error';
+        btn.disabled = false;
+        btn.textContent = 'Sign Up';
+      } else {
+        msg.textContent = 'Account created! You can now login.';
+        msg.className = 'message success';
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 2000);
+      }
+    });
+  </script>
+</body>
+</html>
