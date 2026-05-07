@@ -29,7 +29,7 @@
     <main class="main-content finops-main">
       <header class="finops-topbar">
         <div class="finops-search-wrap">
-          <input id="dashboard-search" class="finops-search" type="search" placeholder="Who owes you? Search client, invoice number, or amount..." />
+          <input id="dashboard-search" class="finops-search" type="search" placeholder="Search invoices or clients" />
         </div>
         <div class="finops-topbar-actions">
           <button type="button" class="btn btn-ghost btn-sm" id="notifications-btn">Notifications</button>
@@ -80,6 +80,22 @@
         <a href="profile.html">Profile</a>
       </nav>
     </main>
+  </div>
+
+  <div id="dashboard-actions-sheet" class="bottom-sheet" style="display:none;">
+    <div class="bottom-sheet-panel">
+      <div class="bottom-sheet-head">
+        <h3>Invoice Actions</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeDashboardActionsSheet()">Close</button>
+      </div>
+      <div class="sheet-action-list">
+        <button class="btn btn-ghost" onclick="runDashboardSheetAction('whatsapp')">Share WhatsApp</button>
+        <button class="btn btn-ghost" onclick="runDashboardSheetAction('copy')">Copy Link</button>
+        <button class="btn btn-ghost" onclick="runDashboardSheetAction('paid')">Mark Paid</button>
+        <button class="btn btn-ghost" onclick="runDashboardSheetAction('pdf')">Download PDF</button>
+        <button class="btn btn-text btn-danger" onclick="runDashboardSheetAction('delete')">Delete</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

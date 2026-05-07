@@ -40,7 +40,7 @@
 
       <section class="finops-section">
         <div class="filters finops-filters-grid">
-          <input type="text" id="search-invoices" placeholder="Search by invoice #, client name, or amount..." class="search-input">
+          <input type="text" id="search-invoices" placeholder="Search invoices or clients" class="search-input">
           <button type="button" id="voice-search-btn" class="btn btn-ghost btn-sm">Voice</button>
           <select id="status-filter" onchange="applyFilters()">
             <option value="">All Status</option>
@@ -133,6 +133,23 @@
       <div class="bottom-sheet-actions">
         <button class="btn btn-secondary btn-sm" onclick="resetSheetFilters()">Reset</button>
         <button class="btn btn-primary btn-sm" onclick="applySheetFilters()">Apply Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="invoice-actions-sheet" class="bottom-sheet" style="display:none;">
+    <div class="bottom-sheet-panel">
+      <div class="bottom-sheet-head">
+        <h3>Invoice Actions</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeInvoiceActionsSheet()">Close</button>
+      </div>
+      <div class="sheet-action-list">
+        <button class="btn btn-ghost" onclick="runInvoiceSheetAction('whatsapp')">Share WhatsApp</button>
+        <button class="btn btn-ghost" onclick="runInvoiceSheetAction('copy')">Copy Link</button>
+        <button class="btn btn-ghost" onclick="runInvoiceSheetAction('paid')">Mark Paid</button>
+        <button class="btn btn-ghost" onclick="runInvoiceSheetAction('pdf')">Download PDF</button>
+        <button class="btn btn-ghost" onclick="runInvoiceSheetAction('duplicate')">Duplicate</button>
+        <button class="btn btn-text btn-danger" onclick="runInvoiceSheetAction('delete')">Delete</button>
       </div>
     </div>
   </div>

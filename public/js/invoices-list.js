@@ -2,6 +2,7 @@ let currentUser = null;
 let allInvoices = [];
 let filteredInvoices = [];
 let selectedIds = new Set();
+let activeMobileInvoiceId = null;
 const SAVED_FILTERS_KEY = 'ni_saved_invoice_filters_v2';
 const RECENT_SEARCHES_KEY = 'ni_recent_invoice_searches_v1';
 const ACTION_QUEUE_KEY = 'ni_action_queue_v1';
@@ -30,6 +31,9 @@ const money = (inv) => {
   applyInitialFilterFromQuery();
   renderRecentSearches();
   window.addEventListener('online', processActionQueue);
+  document.getElementById('invoice-actions-sheet')?.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'invoice-actions-sheet') closeInvoiceActionsSheet();
+  });
   await loadInvoices();
   processActionQueue();
 })();
@@ -124,18 +128,14 @@ function renderTable() {
       return `
       <article class="mobile-invoice-card swipe-row" data-id="${inv.id}">
         <div class="mobile-invoice-head">
-          <strong>${inv.clients?.client_name || 'N/A'}</strong>
+          <strong>${inv.invoice_number}</strong>
           <span class="status-badge status-${normStatus}">${normStatus.toUpperCase()}</span>
         </div>
         <p class="mobile-amount">${money(inv)}</p>
-        <p class="page-subtitle">Invoice ${inv.invoice_number} · Due ${inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'} · Viewed ${inv.viewed_at ? 'Yes' : 'No'}</p>
-        <div class="mobile-invoice-actions">
-          <button class="btn btn-ghost btn-sm" onclick="shareViaWhatsApp('${inv.id}')">Share</button>
-          <button class="btn btn-ghost btn-sm" onclick="copyInvoiceLink('${inv.id}')">Copy</button>
-          <button class="btn btn-ghost btn-sm" onclick="markAsPaid('${inv.id}')">Paid</button>
-          <button class="btn btn-ghost btn-sm" onclick="duplicateInvoice('${inv.id}')">Duplicate</button>
-          <button class="btn btn-text btn-danger btn-sm" onclick="deleteInvoice('${inv.id}')">Delete</button>
-          <a class="btn btn-ghost btn-sm" href="/api/invoices/${inv.id}/pdf" target="_blank">PDF</a>
+        <p class="page-subtitle">${inv.clients?.client_name || 'N/A'} · Due ${inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}</p>
+        <div class="mobile-card-footer">
+          <button class="btn btn-primary btn-sm" onclick="openInvoicePrimary('${inv.id}')">Open Invoice</button>
+          <button class="btn btn-ghost btn-sm icon-only-btn" aria-label="More actions" onclick="openInvoiceActionsSheet('${inv.id}')">⋯</button>
         </div>
       </article>
       `;
@@ -187,11 +187,18 @@ async function shareViaWhatsApp(invoiceId) {
   try {
     const link = await ensurePublicLink(invoiceId);
     const inv = allInvoices.find((i)=>i.id===invoiceId);
-    const msg = `Hi ${inv?.clients?.client_name || 'there'},
-Here is invoice ${inv?.invoice_number || ''}.
-Amount: ${money(inv || {})}
-Due: ${inv?.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}
-${link}`;
+    const name = inv?.clients?.client_name || 'there';
+    const number = inv?.invoice_number || 'your invoice';
+    const due = inv?.due_date ? new Date(inv.due_date).toLocaleDateString() : 'No due date';
+    const msg = `Hello ${name},
+
+This is a friendly reminder for invoice ${number}.
+Amount due: ${money(inv || {})}
+Due date: ${due}
+
+View invoice: ${link}
+
+Thank you.`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
     if (typeof window.markInvoiceShared === 'function') window.markInvoiceShared();
   } catch (e) {
@@ -267,6 +274,40 @@ async function bulkWhatsapp() {
   const first = Array.from(selectedIds)[0];
   if (!first) return;
   await shareViaWhatsApp(first);
+}
+
+async function openInvoicePrimary(invoiceId) {
+  try {
+    const link = await ensurePublicLink(invoiceId);
+    window.open(link, '_blank', 'noopener');
+  } catch (e) {
+    if (typeof showToast === 'function') showToast(e.message || 'Could not open invoice', 'error');
+  }
+}
+
+function openInvoiceActionsSheet(invoiceId) {
+  activeMobileInvoiceId = invoiceId;
+  const sheet = document.getElementById('invoice-actions-sheet');
+  if (!sheet) return;
+  sheet.style.display = 'flex';
+}
+
+function closeInvoiceActionsSheet() {
+  const sheet = document.getElementById('invoice-actions-sheet');
+  if (sheet) sheet.style.display = 'none';
+  activeMobileInvoiceId = null;
+}
+
+async function runInvoiceSheetAction(action) {
+  if (!activeMobileInvoiceId) return;
+  const id = activeMobileInvoiceId;
+  closeInvoiceActionsSheet();
+  if (action === 'whatsapp') return shareViaWhatsApp(id);
+  if (action === 'copy') return copyInvoiceLink(id);
+  if (action === 'paid') return markAsPaid(id);
+  if (action === 'pdf') return window.open(`/api/invoices/${id}/pdf`, '_blank', 'noopener');
+  if (action === 'duplicate') return duplicateInvoice(id);
+  if (action === 'delete') return deleteInvoice(id);
 }
 
 function exportToCSV() {
@@ -520,3 +561,7 @@ window.closeFiltersSheet = closeFiltersSheet;
 window.applySheetFilters = applySheetFilters;
 window.resetSheetFilters = resetSheetFilters;
 window.useRecentSearch = useRecentSearch;
+window.openInvoicePrimary = openInvoicePrimary;
+window.openInvoiceActionsSheet = openInvoiceActionsSheet;
+window.closeInvoiceActionsSheet = closeInvoiceActionsSheet;
+window.runInvoiceSheetAction = runInvoiceSheetAction;

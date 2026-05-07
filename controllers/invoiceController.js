@@ -475,7 +475,13 @@ exports.createPublicLink = async (req, res) => {
     if (!invRows?.[0]) return res.status(404).json({ error: 'Invoice not found' });
 
     const link = await getOrCreatePublicLink(invoiceId, userId);
-    const base = process.env.APP_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const configuredBase = String(process.env.APP_BASE_URL || '').trim();
+    const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+    const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
+    const host = forwardedHost || req.get('host');
+    const proto = forwardedProto || req.protocol || 'http';
+    const runtimeBase = host ? `${proto}://${host}` : `http://localhost:${process.env.PORT || 3000}`;
+    const base = (configuredBase || runtimeBase).replace(/\/+$/, '');
     res.json({
       token: link.public_token,
       public_url: `${base}/i/${link.public_token}`

@@ -2,6 +2,7 @@ let currentUser = null;
 let dashboardInvoices = [];
 let dashboardFiltered = [];
 let activityStore = [];
+let activeDashboardInvoiceId = null;
 const DASH_QUEUE_KEY = 'ni_dash_action_queue_v1';
 const DASH_LINK_CACHE_KEY = 'ni_dash_link_cache_v1';
 
@@ -34,6 +35,9 @@ function sparkline(values = []) {
   document.getElementById('dashboard-search')?.addEventListener('input', applyDashboardFilter);
   bindDashboardShortcuts();
   window.addEventListener('online', processDashboardQueue);
+  document.getElementById('dashboard-actions-sheet')?.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'dashboard-actions-sheet') closeDashboardActionsSheet();
+  });
 
   await loadDashboard();
   processDashboardQueue();
@@ -186,6 +190,7 @@ function renderActionRequired(invoices) {
 
   root.innerHTML = rows.map((inv) => {
     const dueText = inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'No due date';
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
     return `
       <div class="finops-action-row">
         <div class="finops-action-main">
@@ -194,10 +199,14 @@ function renderActionRequired(invoices) {
         </div>
         <span class="finops-due-chip ${inv.status === 'overdue' ? 'is-overdue' : ''}">${inv.status.toUpperCase()} · ${dueText}</span>
         <div class="finops-row-actions">
-          <button class="btn btn-secondary btn-sm" onclick="sendWhatsappReminder('${inv.id}')">Send WhatsApp Reminder</button>
-          <button class="btn btn-ghost btn-sm" onclick="copyInvoiceLink('${inv.id}')">Copy Invoice Link</button>
-          <button class="btn btn-ghost btn-sm" onclick="markAsPaid('${inv.id}')">Mark As Paid</button>
-          <button class="btn btn-ghost btn-sm" onclick="viewInvoicePublic('${inv.id}')">View Invoice</button>
+          ${isMobile
+            ? `<button class="btn btn-primary btn-sm" onclick="viewInvoicePublic('${inv.id}')">Open Invoice</button>
+               <button class="btn btn-ghost btn-sm icon-only-btn" onclick="openDashboardActionsSheet('${inv.id}')" aria-label="More actions">⋯</button>`
+            : `<button class="btn btn-secondary btn-sm" onclick="sendWhatsappReminder('${inv.id}')">Send WhatsApp Reminder</button>
+               <button class="btn btn-ghost btn-sm" onclick="copyInvoiceLink('${inv.id}')">Copy Invoice Link</button>
+               <button class="btn btn-ghost btn-sm" onclick="markAsPaid('${inv.id}')">Mark As Paid</button>
+               <button class="btn btn-ghost btn-sm" onclick="viewInvoicePublic('${inv.id}')">View Invoice</button>`
+          }
         </div>
       </div>
     `;
@@ -287,14 +296,53 @@ function renderInvoiceTable(invoices) {
           </div>
           <p class="mobile-amount">${money(inv.total_amount)}</p>
           <p class="page-subtitle">${inv.clients?.client_name || 'N/A'} · Due ${inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}</p>
-          <div class="mobile-invoice-actions">
-            <button class="btn btn-ghost btn-sm" onclick="sendWhatsappReminder('${inv.id}')">WhatsApp</button>
-            <button class="btn btn-ghost btn-sm" onclick="copyInvoiceLink('${inv.id}')">Copy Link</button>
-            <button class="btn btn-ghost btn-sm" onclick="markAsPaid('${inv.id}')">Mark Paid</button>
+          <div class="mobile-card-footer">
+            <button class="btn btn-primary btn-sm" onclick="viewInvoicePublic('${inv.id}')">Open Invoice</button>
+            <button class="btn btn-ghost btn-sm icon-only-btn" onclick="openDashboardActionsSheet('${inv.id}')" aria-label="More actions">⋯</button>
           </div>
         </article>
       `;
     }).join('');
+  }
+}
+
+function openDashboardActionsSheet(invoiceId) {
+  activeDashboardInvoiceId = invoiceId;
+  const sheet = document.getElementById('dashboard-actions-sheet');
+  if (!sheet) return;
+  sheet.style.display = 'flex';
+}
+
+function closeDashboardActionsSheet() {
+  const sheet = document.getElementById('dashboard-actions-sheet');
+  if (sheet) sheet.style.display = 'none';
+  activeDashboardInvoiceId = null;
+}
+
+function runDashboardSheetAction(action) {
+  if (!activeDashboardInvoiceId) return;
+  const id = activeDashboardInvoiceId;
+  closeDashboardActionsSheet();
+  if (action === 'whatsapp') return sendWhatsappReminder(id);
+  if (action === 'copy') return copyInvoiceLink(id);
+  if (action === 'paid') return markAsPaid(id);
+  if (action === 'pdf') return window.open(`/api/invoices/${id}/pdf`, '_blank', 'noopener');
+  if (action === 'delete') return deleteDashboardInvoice(id);
+}
+
+async function deleteDashboardInvoice(invoiceId) {
+  if (!confirm('Delete this invoice?')) return;
+  try {
+    const res = await fetch(`/api/invoices/${invoiceId}`, { method: 'DELETE' });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || 'Could not delete invoice');
+    dashboardInvoices = dashboardInvoices.filter((inv) => inv.id !== invoiceId);
+    applyDashboardFilter();
+    renderKpis(dashboardInvoices);
+    renderActivityFeed(dashboardInvoices);
+    if (typeof showToast === 'function') showToast('Invoice deleted', 'success');
+  } catch (err) {
+    if (typeof showToast === 'function') showToast(err.message, 'error');
   }
 }
 
@@ -333,11 +381,17 @@ async function sendWhatsappReminder(invoiceId) {
     const inv = dashboardInvoices.find((i) => i.id === invoiceId);
     const name = inv?.clients?.client_name || 'there';
     const amount = money(inv?.total_amount || 0);
-    const due = inv?.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A';
-    const message = `Hi ${name}, quick reminder on invoice ${inv?.invoice_number || ''}.
-Amount: ${amount}
-Due: ${due}
-${link}`;
+    const number = inv?.invoice_number || 'your invoice';
+    const due = inv?.due_date ? new Date(inv.due_date).toLocaleDateString() : 'No due date';
+    const message = `Hello ${name},
+
+This is a friendly reminder for invoice ${number}.
+Amount due: ${amount}
+Due date: ${due}
+
+View invoice: ${link}
+
+Thank you.`;
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
     if (typeof window.markInvoiceShared === 'function') window.markInvoiceShared();
     activityStore.unshift({ ts: new Date().toISOString(), text: `Reminder sent for ${inv?.invoice_number || 'invoice'}`, type: 'reminder' });
@@ -450,3 +504,6 @@ window.copyInvoiceLink = copyInvoiceLink;
 window.sendWhatsappReminder = sendWhatsappReminder;
 window.markAsPaid = markAsPaid;
 window.viewInvoicePublic = viewInvoicePublic;
+window.openDashboardActionsSheet = openDashboardActionsSheet;
+window.closeDashboardActionsSheet = closeDashboardActionsSheet;
+window.runDashboardSheetAction = runDashboardSheetAction;

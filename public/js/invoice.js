@@ -652,7 +652,19 @@ function openSuccessModal(invoice, tempClient) {
   document.getElementById('success-whatsapp-btn').onclick = async () => {
     try {
       const link = await ensurePublicLink(invoice.id);
-      const msg = `Hi ${tempClient?.client_name || ''}, here is your invoice ${invoice.invoice_number || ''}: ${link}`;
+      const name = tempClient?.client_name || 'there';
+      const number = invoice.invoice_number || 'your invoice';
+      const amount = fmtMoney(Number(invoice.total_amount || 0));
+      const due = invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'No due date';
+      const msg = `Hello ${name},
+
+Your invoice ${number} is ready.
+Amount due: ${amount}
+Due date: ${due}
+
+View invoice: ${link}
+
+Thank you.`;
       window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
       if (typeof window.markInvoiceShared === 'function') window.markInvoiceShared();
     } catch (e) {

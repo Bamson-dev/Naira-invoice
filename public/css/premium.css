@@ -3181,3 +3181,188 @@ input:focus, select:focus, textarea:focus {
 }
 
 }
+
+/* ==== Mobile Overflow + Layout Safety Fixes ==== */
+@media (max-width: 768px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .app-layout,
+  .main-content,
+  .finops-main {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .finops-section,
+  .mobile-invoice-card,
+  .finops-action-row {
+    overflow: hidden;
+  }
+
+  .page-subtitle,
+  .finops-row-sub,
+  .mobile-invoice-head strong {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .finops-topbar-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .finops-topbar-actions .btn,
+  .finops-topbar-actions .finops-avatar {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 0;
+  }
+
+  .finops-row-actions,
+  .mobile-invoice-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .finops-row-actions .btn,
+  .mobile-invoice-actions .btn,
+  .mobile-invoice-actions a.btn {
+    width: 100%;
+    justify-content: center;
+    margin: 0;
+  }
+
+  .finops-bottom-nav a {
+    font-size: 11px;
+  }
+
+  .marketing-nav {
+    padding: 12px 14px;
+  }
+
+  .marketing-logo {
+    font-size: 36px;
+    line-height: 1;
+  }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .nav-actions .btn {
+    padding: 10px 14px;
+  }
+}
+
+/* ==== Mobile-first interaction refinements ==== */
+.mobile-card-footer {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-only-btn {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.sheet-action-list {
+  display: grid;
+  gap: 8px;
+}
+
+.sheet-action-list .btn {
+  justify-content: flex-start;
+  min-height: 46px;
+}
+
+@media (max-width: 768px) {
+  h1, .hero-title { font-size: 32px; line-height: 1.15; }
+  h2, .section-header .section-title { font-size: 24px; line-height: 1.2; }
+  h3 { font-size: 20px; line-height: 1.25; }
+  body, p, input, select, textarea, .btn { font-size: 16px; line-height: 1.45; }
+  .page-subtitle, small { font-size: 13px; line-height: 1.4; }
+
+  .marketing-nav {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .nav-actions .btn:first-child {
+    display: none;
+  }
+
+  .hero-section {
+    padding: 94px 20px 44px;
+  }
+
+  .hero-content {
+    max-width: 360px;
+  }
+
+  .hero-subtitle {
+    margin-bottom: 20px;
+  }
+
+  .finops-topbar {
+    position: sticky;
+    top: 0;
+    background: rgba(248, 250, 252, 0.96);
+    backdrop-filter: blur(8px);
+    z-index: 30;
+    padding-top: 4px;
+    padding-bottom: 8px;
+  }
+
+  .finops-search {
+    min-height: 48px;
+    border-radius: 14px;
+  }
+
+  .finops-bottom-nav {
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.08);
+  }
+
+  .finops-bottom-nav a.active {
+    color: #5b21b6;
+    font-weight: 700;
+  }
+
+  .finops-bottom-nav a.create-tab {
+    box-shadow: 0 12px 24px rgba(109, 40, 217, 0.33);
+  }
+
+  .finops-section {
+    border-radius: 16px;
+    padding: 14px;
+  }
+
+  .finops-activity-item {
+    padding: 6px 0;
+  }
+
+  .finops-activity-item p {
+    font-size: 14px;
+  }
+
+  .mobile-invoice-card {
+    border-radius: 14px;
+    padding: 14px;
+  }
+}
