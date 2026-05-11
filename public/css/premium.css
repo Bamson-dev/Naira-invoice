@@ -3247,8 +3247,9 @@ input:focus, select:focus, textarea:focus {
   }
 
   .marketing-logo {
-    font-size: 36px;
-    line-height: 1;
+    font-size: clamp(16px, 4.2vw, 20px);
+    line-height: 1.2;
+    min-width: 0;
   }
 
   .nav-actions {
@@ -3289,7 +3290,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 @media (max-width: 768px) {
-  h1, .hero-title { font-size: 32px; line-height: 1.15; }
+  h1 { font-size: 28px; line-height: 1.2; }
   h2, .section-header .section-title { font-size: 24px; line-height: 1.2; }
   h3 { font-size: 20px; line-height: 1.25; }
   body, p, input, select, textarea, .btn { font-size: 16px; line-height: 1.45; }
@@ -3311,7 +3312,7 @@ input:focus, select:focus, textarea:focus {
   }
 
   .hero-content {
-    max-width: 360px;
+    max-width: min(100%, 40rem);
   }
 
   .hero-subtitle {
@@ -3364,5 +3365,170 @@ input:focus, select:focus, textarea:focus {
   .mobile-invoice-card {
     border-radius: 14px;
     padding: 14px;
+  }
+}
+
+/* ========== Marketing homepage (mobile layout, safe areas) ========== */
+body.marketing-page {
+  overflow-x: clip;
+}
+
+@media (max-width: 768px) {
+  body.marketing-page .marketing-nav {
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+    padding-top: max(10px, env(safe-area-inset-top, 0px));
+    padding-bottom: 10px;
+  }
+
+  body.marketing-page .marketing-logo {
+    font-size: clamp(15px, 4vw, 19px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  body.marketing-page .nav-actions .btn-sm {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  body.marketing-page .hero-section {
+    padding-top: max(76px, calc(48px + env(safe-area-inset-top, 0px)));
+    padding-bottom: 36px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  body.marketing-page .hero-section .hero-title {
+    font-size: clamp(1.45rem, 5.2vw + 0.35rem, 2.05rem);
+    line-height: 1.2;
+    margin-bottom: 12px;
+    letter-spacing: -0.025em;
+  }
+
+  body.marketing-page .hero-subtitle {
+    font-size: clamp(14px, 3.6vw, 16px);
+    line-height: 1.55;
+    margin-bottom: 18px;
+  }
+
+  body.marketing-page .hero-cta {
+    display: flex;
+    width: 100%;
+    max-width: 20rem;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+    justify-content: center;
+    padding: 14px 18px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
+
+  body.marketing-page .hero-note {
+    font-size: 12px;
+    line-height: 1.45;
+    margin-top: 12px;
+  }
+
+  body.marketing-page .section-header {
+    margin-bottom: 28px;
+  }
+
+  body.marketing-page .features-section,
+  body.marketing-page .how-it-works,
+  body.marketing-page .pricing-section {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  body.marketing-page .features-section {
+    padding-top: 28px;
+  }
+
+  body.marketing-page .section-header .section-title {
+    font-size: clamp(1.25rem, 4.5vw, 1.65rem);
+  }
+
+  body.marketing-page .section-subtitle {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  body.marketing-page .features-grid {
+    gap: 16px;
+    grid-template-columns: 1fr;
+  }
+
+  body.marketing-page .feature-card {
+    padding: 20px;
+  }
+
+  body.marketing-page .feature-card:hover {
+    transform: none;
+  }
+
+  body.marketing-page .feature-icon {
+    width: 52px;
+    height: 52px;
+    font-size: 26px;
+    margin-bottom: 14px;
+  }
+
+  body.marketing-page .feature-title {
+    font-size: 17px;
+  }
+
+  body.marketing-page .feature-description {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  body.marketing-page .cta-section {
+    padding-top: 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  body.marketing-page .cta-section h2 {
+    font-size: clamp(1.25rem, 4.5vw, 1.75rem);
+  }
+
+  body.marketing-page .cta-section p {
+    font-size: 15px;
+    margin-bottom: 20px;
+  }
+
+  body.marketing-page .pricing-card {
+    padding: 24px;
+  }
+
+  body.marketing-page .pricing-price {
+    font-size: 36px;
+  }
+
+  body.marketing-page .footer {
+    padding: 20px max(16px, env(safe-area-inset-left, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-right, 0px));
+    font-size: 13px;
+  }
+
+  body.marketing-page .steps {
+    gap: 16px;
+  }
+
+  body.marketing-page .step {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 380px) {
+  body.marketing-page .nav-actions .btn-primary.btn-sm {
+    font-size: 11px;
+    padding: 8px 9px;
   }
 }
