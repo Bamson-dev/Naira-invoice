@@ -25,6 +25,11 @@
   --gradient-secondary: linear-gradient(135deg, #EC4899 0%, #F59E0B 100%);
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text-primary);
@@ -2960,7 +2965,12 @@ input:focus, select:focus, textarea:focus {
   html, body { font-size: 16px; }
 
   .sidebar { display: none !important; }
-  .main-content, .finops-main { margin-left: 0 !important; padding: 12px 12px 142px !important; }
+  .main-content,
+  .finops-main {
+    margin-left: 0 !important;
+    padding: 12px max(12px, env(safe-area-inset-right, 0px)) 142px
+      max(12px, env(safe-area-inset-left, 0px)) !important;
+  }
 
   .finops-table-wrap { display: none; }
   .mobile-cards-list { display: block; }
@@ -3368,6 +3378,119 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
+/* ========== Mobile: auth, forms, modals, touch (app + public) ========== */
+
+@media (max-width: 768px) {
+  .btn,
+  .hero-cta,
+  a.btn {
+    touch-action: manipulation;
+  }
+
+  .auth-container {
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: max(16px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+    min-height: 100vh;
+    min-height: 100dvh;
+    box-sizing: border-box;
+  }
+
+  .auth-box {
+    padding: 26px 18px;
+    border-radius: 18px;
+    max-width: 100%;
+  }
+
+  .auth-logo {
+    font-size: clamp(1.65rem, 6.5vw, 2.15rem);
+    line-height: 1.15;
+    word-break: break-word;
+  }
+
+  .auth-subtitle {
+    font-size: 14px;
+    margin-bottom: 22px;
+    padding: 0 2px;
+  }
+
+  .auth-form h2 {
+    font-size: 21px;
+    margin-bottom: 18px;
+  }
+
+  .invoice-form,
+  .profile-form {
+    padding: 20px 14px;
+  }
+
+  .modal-content {
+    max-height: calc(
+      100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) -
+        32px
+    );
+    max-height: min(
+      85vh,
+      calc(
+        100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) -
+          32px
+      )
+    );
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .onboarding-content {
+    max-height: calc(
+      100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) -
+        24px
+    );
+    max-height: min(
+      92vh,
+      calc(
+        100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) -
+          24px
+      )
+    );
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .public-invoice-main {
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .clients-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .page-header {
+    gap: 12px;
+  }
+
+  .page-header h1 {
+    font-size: clamp(1.15rem, 4.8vw, 1.65rem);
+    line-height: 1.25;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .toast {
+    left: max(12px, env(safe-area-inset-left, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(20px, calc(16px + env(safe-area-inset-bottom, 0px)));
+    max-width: calc(100vw - max(24px, env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px)));
+  }
+}
+
 /* ========== Marketing homepage (mobile layout, safe areas) ========== */
 body.marketing-page {
   overflow-x: clip;
@@ -3523,6 +3646,24 @@ body.marketing-page {
 
   body.marketing-page .step {
     padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  body.marketing-page .hero-section {
+    padding-top: max(64px, calc(40px + env(safe-area-inset-top, 0px)));
+    padding-bottom: 28px;
+  }
+
+  body.marketing-page .features-section,
+  body.marketing-page .how-it-works,
+  body.marketing-page .pricing-section {
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
+
+  body.marketing-page .section-header {
+    margin-bottom: 22px;
   }
 }
 
