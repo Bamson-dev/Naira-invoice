@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Clients - NairaInvoice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/premium.css">
+</head>
+<body class="finops-dashboard-page">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">NairaInvoice</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="create-invoice.html">Create Invoice</a></li>
+        <li><a href="invoices.html">Invoices</a></li>
+        <li><a href="clients.html" class="active">Clients</a></li>
+        <li><a href="analytics.html">Analytics</a></li>
+        <li><a href="payments.html">Payments</a></li>
+        <li><a href="portal-preview.html">Shared Invoices</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li><a href="#" id="logout-link">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content finops-main">
+      <header class="finops-topbar">
+        <div>
+          <h1>Clients</h1>
+          <p class="page-subtitle">See who pays on time and who needs closer follow-up.</p>
+        </div>
+        <div class="finops-topbar-actions">
+          <button class="btn btn-primary btn-sm" onclick="showAddClientModal()">+ Add Client</button>
+        </div>
+      </header>
+
+      <section class="finops-section">
+        <p class="page-subtitle" style="margin-bottom:10px;">Payment reliability helps you spot high-risk clients before cashflow gets blocked.</p>
+        <div class="finops-table-wrap">
+          <table class="finops-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Total Revenue</th>
+                <th>Unpaid Balance</th>
+                <th>Recent Invoice</th>
+                <th>Payment Reliability</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="clients-list"></tbody>
+          </table>
+        </div>
+        <div id="clients-mobile-list" class="mobile-cards-list"></div>
+      </section>
+
+      <nav class="finops-bottom-nav" aria-label="Mobile">
+        <a href="dashboard.html">Home</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="create-invoice.html" class="create-tab" aria-label="Create invoice">+</a>
+        <a href="clients.html" class="active">Clients</a>
+        <a href="profile.html">Profile</a>
+      </nav>
+    </main>
+  </div>
+
+  <div id="client-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2 id="modal-title" class="modal-header">Add Client</h2>
+      <input type="hidden" id="client-id">
+      <div class="form-group"><label for="client-name">Who do you usually work with?</label><small class="helper-text">Use the business or person name your client recognizes.</small><input type="text" id="client-name" required></div>
+      <div class="form-group"><label for="client-email">Best email for invoice sharing</label><small class="helper-text">Optional, but helpful for tracking communication.</small><input type="email" id="client-email"></div>
+      <div class="form-group"><label for="client-phone">Phone / WhatsApp number</label><small class="helper-text">Use this for faster reminders and payment follow-ups.</small><input type="tel" id="client-phone"></div>
+      <div class="form-group"><label for="client-address">Address (optional)</label><textarea id="client-address" rows="3"></textarea></div>
+      <div class="form-group"><label for="client-notes">Client notes</label><small class="helper-text">Example: “Prefers invoices every Friday”.</small><textarea id="client-notes" rows="2"></textarea></div>
+      <div class="modal-actions">
+        <button type="button" onclick="closeClientModal()" class="btn btn-secondary">Cancel</button>
+        <button type="button" onclick="saveClient()" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/onboarding.js"></script>
+  <script src="js/clients.js"></script>
+</body>
+</html>

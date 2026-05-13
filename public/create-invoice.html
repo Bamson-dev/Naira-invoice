@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Create Invoice - NairaInvoice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/premium.css">
+</head>
+<body class="finops-dashboard-page">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">NairaInvoice</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="create-invoice.html" class="active">Create Invoice</a></li>
+        <li><a href="invoices.html">Invoices</a></li>
+        <li><a href="clients.html">Clients</a></li>
+        <li><a href="analytics.html">Analytics</a></li>
+        <li><a href="payments.html">Payments</a></li>
+        <li><a href="portal-preview.html">Shared Invoices</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li><a href="#" id="logout-link">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content finops-main">
+      <header class="finops-topbar">
+        <div>
+          <h1>Create Invoice</h1>
+          <p class="page-subtitle">Create and share an invoice in under 30 seconds.</p>
+        </div>
+      </header>
+
+      <div id="invoice-status" class="message" style="display:none;" role="status" aria-live="polite"></div>
+
+      <section class="finops-section quick-mode-panel">
+        <div class="quick-mode-head">
+          <div>
+            <h2>Create Invoice</h2>
+            <p class="page-subtitle">Fastest flow first. No client setup required.</p>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="create-flow-select">Choose flow</label>
+          <select id="create-flow-select">
+            <option value="quick">Quick Invoice (Recommended)</option>
+            <option value="saved">Invoice For Saved Client</option>
+          </select>
+        </div>
+      </section>
+
+      <section id="quick-flow" class="finops-section">
+        <div class="form-group">
+          <label for="quick-client-name">Client Name</label>
+          <input type="text" id="quick-client-name" placeholder="e.g. Adebayo Ventures" list="quick-client-suggestions" />
+          <datalist id="quick-client-suggestions"></datalist>
+          <small id="quick-client-match" class="helper-text"></small>
+        </div>
+        <div class="form-group">
+          <label for="quick-description">Invoice Description</label>
+          <input type="text" id="quick-description" placeholder="e.g. Website redesign for May" />
+        </div>
+        <div class="form-group">
+          <label for="quick-amount">Amount</label>
+          <input type="number" id="quick-amount" inputmode="decimal" min="0" step="0.01" placeholder="e.g. 150000" />
+        </div>
+        <button type="button" id="quick-generate-btn" class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="createQuickInvoice()">Generate Invoice</button>
+
+        <details id="quick-more-options" class="builder-section" style="margin-top:12px;">
+          <summary>More Options</summary>
+          <div class="builder-section-body">
+            <div class="form-row">
+              <div class="form-group"><label for="quick-due-date">Due Date</label><input type="date" id="quick-due-date"></div>
+              <div class="form-group">
+                <label for="currency-select">Currency</label>
+                <select id="currency-select">
+                  <option value="NGN">NGN (₦)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label for="quick-client-email">Client Email</label><input type="email" id="quick-client-email" placeholder="client@email.com"></div>
+              <div class="form-group"><label for="quick-client-phone">Client Phone</label><input type="text" id="quick-client-phone" placeholder="+234..."></div>
+            </div>
+            <div class="form-group"><label for="quick-client-address">Client Address</label><input type="text" id="quick-client-address" placeholder="Optional address"></div>
+            <div class="form-row">
+              <div class="form-group"><label for="tax-percentage">Tax (%)</label><input type="number" inputmode="decimal" id="tax-percentage" value="0" min="0" max="100" step="0.01"></div>
+              <div class="form-group"><label for="discount-value">Discount</label><input type="number" inputmode="decimal" id="discount-value" value="0" min="0" step="0.01"></div>
+            </div>
+            <div class="form-group"><label for="notes">Notes</label><textarea id="notes" rows="3" placeholder="Payment terms or notes"></textarea></div>
+            <div class="form-group">
+              <label for="template-style">Invoice Template</label>
+              <select id="template-style">
+                <option value="modern_fintech">Modern Fintech</option>
+                <option value="executive_black">Executive Black</option>
+                <option value="creative_studio">Creative Studio</option>
+                <option value="ivory_luxe">Ivory Luxe</option>
+                <option value="midnight_editorial">Midnight Editorial</option>
+              </select>
+            </div>
+            <button type="button" id="quick-generate-btn-expanded" class="btn btn-primary" style="width:100%;margin-top:10px;display:none;" onclick="createQuickInvoice()">Generate Invoice</button>
+          </div>
+        </details>
+      </section>
+
+      <section id="saved-flow" class="finops-section" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="client-select">Saved Client</label>
+            <select id="client-select"></select>
+          </div>
+          <div class="form-group">
+            <label for="invoice-date">Invoice Date</label>
+            <input type="date" id="invoice-date">
+          </div>
+        </div>
+        <div class="line-items-toolbar">
+          <button type="button" onclick="addLineItem()" class="btn btn-secondary btn-sm">+ Add Item</button>
+        </div>
+        <div id="line-items" class="line-items-table"></div>
+        <div class="invoice-totals" style="margin-top:10px;">
+          <div class="total-row"><span class="total-label">Subtotal</span><span class="total-value" id="subtotal">₦0.00</span></div>
+          <div class="total-row"><span class="total-label">Tax</span><span id="tax-amount">₦0.00</span></div>
+          <div class="total-row"><span class="total-label">Discount</span><span id="discount-amount">₦0.00</span></div>
+          <div class="total-row final"><span class="total-label">Total</span><span class="total-value" id="total">₦0.00</span></div>
+        </div>
+        <button type="button" id="create-invoice-btn" onclick="saveInvoice()" class="btn btn-primary" style="width:100%;margin-top:10px;">Generate Invoice</button>
+      </section>
+
+      <div class="mobile-create-bar">
+        <div>
+          <small>Total</small>
+          <strong id="mobile-total">₦0.00</strong>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="mobile-generate-btn" onclick="createQuickInvoice()">Generate Invoice</button>
+      </div>
+
+      <div id="invoice-success-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+          <button class="modal-close-x" type="button" aria-label="Close and go to dashboard" onclick="goToDashboard()">✕</button>
+          <h3 class="modal-header">Invoice Ready</h3>
+          <p class="page-subtitle" id="success-subtitle">Now share it to get paid faster.</p>
+          <div class="quick-mode-actions" style="margin-top:10px;">
+            <button class="btn btn-primary" id="success-whatsapp-btn" type="button">Share via WhatsApp</button>
+            <button class="btn btn-secondary" id="success-copy-btn" type="button">Copy Invoice Link</button>
+            <button class="btn btn-ghost" id="success-pdf-btn" type="button">Download PDF</button>
+          </div>
+          <div id="save-client-prompt" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid #E5E7EB;">
+            <p class="page-subtitle">Save this client for future invoices?</p>
+            <div class="quick-mode-actions">
+              <button class="btn btn-secondary btn-sm" type="button" id="save-client-now-btn">Save Client</button>
+              <button class="btn btn-ghost btn-sm" type="button" onclick="closeSuccessModal()">Not Now</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="finops-bottom-nav" aria-label="Mobile">
+        <a href="dashboard.html">Home</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="create-invoice.html" class="create-tab active" aria-label="Create invoice">+</a>
+        <a href="clients.html">Clients</a>
+        <a href="profile.html">Profile</a>
+      </nav>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/onboarding.js"></script>
+  <script src="js/invoice.js"></script>
+</body>
+</html>

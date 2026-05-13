@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Shared Invoices - NairaInvoice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/premium.css">
+</head>
+<body class="finops-dashboard-page">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">NairaInvoice</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="create-invoice.html">Create Invoice</a></li>
+        <li><a href="invoices.html">Invoices</a></li>
+        <li><a href="clients.html">Clients</a></li>
+        <li><a href="analytics.html">Analytics</a></li>
+        <li><a href="payments.html">Payments</a></li>
+        <li><a href="portal-preview.html" class="active">Shared Invoices</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li><a href="#" id="logout-link">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content finops-main">
+      <header class="finops-topbar">
+        <div>
+          <h1>Shared Invoices</h1>
+          <p class="page-subtitle">Preview the hosted page clients receive.</p>
+        </div>
+      </header>
+
+      <section class="finops-section">
+        <div class="portal-preview-header portal-preview-header-clean">
+          <div>
+            <p class="portal-badge">SECURE CLIENT VIEW</p>
+            <h2>INV-PREVIEW</h2>
+            <p class="page-subtitle portal-inline-meta">Your Business Name · ₦248,400.00 · Due May 21, 2026</p>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" disabled>Payment CTA (soon)</button>
+        </div>
+
+        <div class="portal-line-items portal-line-items-clean">
+          <div class="portal-line-item"><span>Brand Strategy Sprint</span><strong>₦200,000.00</strong></div>
+          <div class="portal-line-item"><span>VAT (7.5%)</span><strong>₦30,000.00</strong></div>
+          <div class="portal-line-item is-total"><span>Total</span><strong>₦230,000.00</strong></div>
+        </div>
+
+        <div class="portal-timeline">
+          <h3>Activity Timeline</h3>
+          <div class="portal-timeline-row"><span class="dot dot-created"></span><p>Invoice created</p><small>May 12, 10:20 AM</small></div>
+          <div class="portal-timeline-row"><span class="dot dot-viewed"></span><p>Client viewed invoice</p><small>May 13, 9:02 AM</small></div>
+          <div class="portal-timeline-row"><span class="dot dot-reminder"></span><p>Reminder sent via WhatsApp</p><small>May 14, 1:18 PM</small></div>
+        </div>
+      </section>
+
+      <nav class="finops-bottom-nav" aria-label="Mobile">
+        <a href="dashboard.html">Home</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="portal-preview.html" class="active">Shared</a>
+        <a href="profile.html">Profile</a>
+      </nav>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    (async () => {
+      const u = await requireAuth();
+      if (!u) return;
+      document.getElementById('logout-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        handleLogout();
+      });
+    })();
+  </script>
+</body>
+</html>

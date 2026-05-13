@@ -4,6 +4,40 @@ const path = require('path');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+function sanitizeProfilePayload(body) {
+  const allowed = [
+    'user_id',
+    'business_name',
+    'business_address',
+    'phone',
+    'email',
+    'logo_url',
+    'bank_name',
+    'account_number',
+    'account_name',
+    'tax_id',
+    'invoice_prefix',
+    'brand_accent_color',
+    'invoice_footer_text',
+    'invoice_signature',
+    'invoice_watermark_text'
+  ];
+  const row = {};
+  for (const key of allowed) {
+    const v = body[key];
+    if (v !== undefined && v !== '') {
+      row[key] = v;
+    }
+  }
+  if (!row.invoice_prefix) {
+    row.invoice_prefix = 'INV';
+  }
+  if (body.next_invoice_number !== undefined && body.next_invoice_number !== '') {
+    row.next_invoice_number = Number(body.next_invoice_number);
+  }
+  return row;
+}
+
 exports.getProfile = async (req, res) => {
   try {
     const userId = req.query.user_id;
@@ -15,10 +49,10 @@ exports.getProfile = async (req, res) => {
       .from('business_profiles')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    res.json({ profile: data || null });
+    if (error) throw error;
+    res.json({ profile: data ?? null });
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ error: error.message });
@@ -27,37 +61,37 @@ exports.getProfile = async (req, res) => {
 
 exports.createOrUpdateProfile = async (req, res) => {
   try {
-    const profile = req.body;
-
-    const { data: existing } = await supabase
-      .from('business_profiles')
-      .select('id')
-      .eq('user_id', profile.user_id)
-      .single();
-
-    let data;
-    let error;
-
-    if (existing) {
-      ({ data, error } = await supabase
-        .from('business_profiles')
-        .update(profile)
-        .eq('user_id', profile.user_id)
-        .select()
-        .single());
-    } else {
-      ({ data, error } = await supabase
-        .from('business_profiles')
-        .insert([profile])
-        .select()
-        .single());
+    const raw = req.body || {};
+    if (!raw.user_id) {
+      return res.status(400).json({ error: 'user_id is required' });
+    }
+    if (!raw.business_name || String(raw.business_name).trim() === '') {
+      return res.status(400).json({ error: 'business_name is required' });
     }
 
+    const payload = sanitizeProfilePayload(raw);
+    payload.business_name = String(raw.business_name).trim();
+
+    const { data: rows, error } = await supabase
+      .from('business_profiles')
+      .upsert(payload, { onConflict: 'user_id' })
+      .select('*');
+
     if (error) throw error;
+
+    const data = Array.isArray(rows) ? rows[0] : rows;
+    if (!data) {
+      return res.status(500).json({
+        error:
+          'Profile upsert returned no row. Check Supabase: table business_profiles exists, user_id exists in auth.users, and SUPABASE_SERVICE_KEY is the service_role key.'
+      });
+    }
+
     res.json({ profile: data });
   } catch (error) {
     console.error('Create/update profile error:', error);
-    res.status(500).json({ error: error.message });
+    const msg = error.message || error.details || JSON.stringify(error);
+    res.status(500).json({ error: msg, code: error.code });
   }
 };
 
@@ -76,7 +110,7 @@ exports.uploadLogo = [
       const fileName = `${userId}-${Date.now()}${fileExt}`;
       const filePath = `logos/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('business-logos')
         .upload(filePath, file.buffer, {
           contentType: file.mimetype,

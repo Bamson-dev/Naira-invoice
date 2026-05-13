@@ -1,0 +1,3 @@
+const SUPABASE_URL = 'https://zemwinhdipgqkdfdubps.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplbXdpbmhkaXBncWtkZmR1YnBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODkyMDQsImV4cCI6MjA5MzY2NTIwNH0.mnaNqWK2YvCKCb87TbKC7A66XMCUFrk25cQ1lxW-NxM';
+window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

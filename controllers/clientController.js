@@ -29,9 +29,12 @@ exports.createClient = async (req, res) => {
       .from('clients')
       .insert([client])
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) {
+      return res.status(500).json({ error: 'Client was not created (no row returned).' });
+    }
     res.json({ client: data });
   } catch (error) {
     console.error('Create client error:', error);
@@ -49,9 +52,12 @@ exports.updateClient = async (req, res) => {
       .update(client)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) {
+      return res.status(404).json({ error: 'Client not found or could not be updated.' });
+    }
     res.json({ client: data });
   } catch (error) {
     console.error('Update client error:', error);

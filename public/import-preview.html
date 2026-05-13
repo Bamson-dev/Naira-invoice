@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Import preview - NairaInvoice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/premium.css">
+</head>
+<body>
+  <div class="main-content" style="margin-left:0; max-width:900px;">
+    <h1 style="margin-bottom:24px;">Import preview</h1>
+    <p style="margin-bottom:16px;color:var(--text-muted);">Read-only preview of invoices you imported via JSON file. Bulk insert into Postgres is handled via migration / admin tools.</p>
+    <div id="import-preview-root"></div>
+    <p style="margin-top:24px;"><a href="invoices.html" class="btn btn-secondary">Back to invoices</a></p>
+  </div>
+  <script>
+    try {
+      const raw = localStorage.getItem('ni_import_invoice_snapshot');
+      const rows = JSON.parse(raw || '[]');
+      const el = document.getElementById('import-preview-root');
+      if (!Array.isArray(rows) || rows.length === 0) {
+        el.innerHTML = '<p class="message">No import data found.</p>';
+      } else {
+        el.innerHTML = '<div class="card">' + rows.map(r => `
+          <div style="padding:12px;border-bottom:1px solid var(--border);">
+            <strong>${r.invoice_number || '-'}</strong> — ${r.status || ''} — ${r.total_amount || ''} ${r.currency || 'NGN'}
+          </div>
+        `).join('') + '</div>';
+      }
+    } catch (e) {
+      document.getElementById('import-preview-root').innerHTML = '<p class="message error">Could not parse import.</p>';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Profile - NairaInvoice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/premium.css">
+</head>
+<body class="finops-dashboard-page">
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-logo">NairaInvoice</div>
+      <ul class="sidebar-nav">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="create-invoice.html">Create Invoice</a></li>
+        <li><a href="invoices.html">Invoices</a></li>
+        <li><a href="clients.html">Clients</a></li>
+        <li><a href="analytics.html">Analytics</a></li>
+        <li><a href="payments.html">Payments</a></li>
+        <li><a href="portal-preview.html">Shared Invoices</a></li>
+        <li><a href="profile.html" class="active">Profile</a></li>
+        <li><a href="#" id="logout-link">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content finops-main">
+      <header class="finops-topbar">
+        <div>
+          <h1>Profile & Settings</h1>
+          <p class="page-subtitle">Set this once so every invoice looks professional and payment-ready.</p>
+        </div>
+      </header>
+
+      <div id="profile-status" class="message" style="display:none;"></div>
+
+      <section class="finops-section">
+        <div class="settings-tabs" id="settings-tabs">
+          <button class="tab-btn active" data-tab="business">Business Info</button>
+          <button class="tab-btn" data-tab="branding">Branding</button>
+          <button class="tab-btn" data-tab="payment">Payment Settings</button>
+          <button class="tab-btn" data-tab="invoice">Invoice Settings</button>
+        </div>
+
+        <div class="tab-panel active" id="tab-business">
+          <div class="form-row">
+            <div class="form-group"><label for="business-name">What should clients see on your invoice?</label><small class="helper-text">Example: Brightline Studio</small><input type="text" id="business-name" required></div>
+            <div class="form-group"><label for="email">Business Email</label><small class="helper-text">Clients may use this for confirmation.</small><input type="email" id="email"></div>
+          </div>
+          <div class="form-group"><label for="business-address">Business Address</label><small class="helper-text">Optional, but adds trust for first-time clients.</small><textarea id="business-address" rows="3"></textarea></div>
+          <div class="form-group"><label for="phone">Phone</label><small class="helper-text">Used in shared invoice pages and reminders.</small><input type="tel" id="phone"></div>
+        </div>
+
+        <div class="tab-panel" id="tab-branding">
+          <div class="form-group">
+            <label for="logo-upload">Business Logo</label>
+            <input type="file" id="logo-upload" accept="image/*">
+            <div id="logo-preview"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label for="brand-accent-color">Accent Color</label><input type="color" id="brand-accent-color" value="#6D28D9"></div>
+            <div class="form-group"><label for="invoice-watermark-text">Watermark Text (optional)</label><input type="text" id="invoice-watermark-text" placeholder="CONFIDENTIAL"></div>
+          </div>
+          <div class="form-group"><label for="invoice-signature">Signature Name / Role</label><input type="text" id="invoice-signature" placeholder="Adebayo O. · Founder"></div>
+          <div class="form-group"><label for="invoice-footer-text">Footer Message</label><input type="text" id="invoice-footer-text" placeholder="Generated with PDigitalHQ"></div>
+        </div>
+
+        <div class="tab-panel" id="tab-payment">
+          <div class="form-row">
+            <div class="form-group"><label for="bank-name">Bank Name</label><small class="helper-text">Example: Access Bank</small><input type="text" id="bank-name"></div>
+            <div class="form-group"><label for="account-number">Account Number</label><small class="helper-text">Your payout account for transfers.</small><input type="text" id="account-number"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label for="account-name">Account Name</label><small class="helper-text">Must match your bank account details exactly.</small><input type="text" id="account-name"></div>
+            <div class="form-group"><label for="tax-id">Tax ID / CAC</label><input type="text" id="tax-id"></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-invoice">
+          <div class="form-group"><label for="invoice-prefix">Invoice Prefix</label><small class="helper-text">Example: INV-001, INV-002...</small><input type="text" id="invoice-prefix" placeholder="INV"></div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <button type="button" id="save-profile-btn" onclick="saveProfile()" class="btn btn-primary">Save Settings</button>
+        </div>
+      </section>
+
+      <nav class="finops-bottom-nav" aria-label="Mobile">
+        <a href="dashboard.html">Home</a>
+        <a href="invoices.html">Invoices</a>
+        <a href="create-invoice.html" class="create-tab" aria-label="Create invoice">+</a>
+        <a href="clients.html">Clients</a>
+        <a href="profile.html" class="active">Profile</a>
+      </nav>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/onboarding.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>
