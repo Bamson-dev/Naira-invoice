@@ -82,7 +82,7 @@ export default function LandingPage() {
         <header className="flex items-center justify-between gap-3 py-3">
           <LogoMark />
           <a
-            href="/login"
+            href="/login.html"
             className="rounded-full border border-stone-200/90 bg-white/80 px-4 py-2 text-sm font-semibold text-ink shadow-[0_1px_0_rgb(12_10_18/0.04)] backdrop-blur-sm transition hover:border-stone-300 hover:bg-white"
           >
             Login
@@ -107,7 +107,7 @@ export default function LandingPage() {
 
           <div className="mt-6">
             <a
-              href="/create"
+              href="/signup.html"
               className="flex h-14 w-full items-center justify-center rounded-xl bg-linear-to-r from-[#5b3d8a] via-[#4a2d7a] to-[#3a2460] text-[15px] font-bold text-white shadow-[var(--shadow-cta)] ring-1 ring-white/10 transition active:scale-[0.99] hover:brightness-[1.03]"
             >
               Create free invoice
@@ -252,7 +252,7 @@ export default function LandingPage() {
             Start sending professional invoices today
           </h2>
           <a
-            href="/create"
+            href="/signup.html"
             className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-linear-to-r from-[#5b3d8a] via-[#4a2d7a] to-[#3a2460] text-[15px] font-bold text-white shadow-[var(--shadow-cta)] ring-1 ring-white/10 transition active:scale-[0.99] hover:brightness-[1.03]"
           >
             Create free invoice
