@@ -1,0 +1,11 @@
+# Web app
+web/node_modules/
+web/dist/
+
+# Secrets and local env (never commit)
+.env
+.env.*
+vercel.env
+
+# OS
+.DS_Store
