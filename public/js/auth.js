@@ -1,47 +1,63 @@
-async function getClient() {
-  await window.supabaseReady;
-  return window.supabaseClient;
-}
-
 async function checkAuth(redirectTo = 'dashboard.html') {
-  const supabaseClient = await getClient();
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if (session) {
-    window.location.href = redirectTo;
-  }
+  const user = await requireAuth(false);
+  if (user) window.location.href = redirectTo;
 }
 
 async function requireAuth(redirectTo = 'login.html') {
-  const supabaseClient = await getClient();
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) {
-    window.location.href = redirectTo;
+  const stored = window.apiClient.getStoredUser();
+  const token = window.apiClient.getAccessToken();
+  if (!token) {
+    if (redirectTo) window.location.href = redirectTo;
     return null;
   }
-  return session.user;
+  try {
+    const res = await window.apiClient.apiFetch('/api/auth/me');
+    if (!res.ok) {
+      window.apiClient.clearSession();
+      if (redirectTo) window.location.href = redirectTo;
+      return null;
+    }
+    const { user } = await res.json();
+    window.apiClient.persistSession({ user, accessToken: token, refreshToken: window.apiClient.getRefreshToken() });
+    return user;
+  } catch {
+    if (redirectTo) window.location.href = redirectTo;
+    return null;
+  }
 }
 
 async function handleSignup(email, password) {
-  const supabaseClient = await getClient();
-  const { data, error } = await supabaseClient.auth.signUp({
-    email: email,
-    password: password
+  const res = await fetch('/api/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
   });
-  return { data, error };
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { data: null, error: { message: data.error || 'Signup failed' } };
+  window.apiClient.persistSession(data);
+  return { data, error: null };
 }
 
 async function handleLogin(email, password) {
-  const supabaseClient = await getClient();
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email: email,
-    password: password
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
   });
-  return { data, error };
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { data: null, error: { message: data.error || 'Login failed' } };
+  window.apiClient.persistSession(data);
+  return { data, error: null };
 }
 
 async function handleLogout() {
-  const supabaseClient = await getClient();
-  await supabaseClient.auth.signOut();
+  const refreshToken = window.apiClient.getRefreshToken();
+  await fetch('/api/auth/logout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken })
+  }).catch(() => {});
+  window.apiClient.clearSession();
   window.location.href = 'login.html';
 }
 

@@ -87,15 +87,15 @@ It combines:
 ## Tech Stack
 
 ### Backend
-- Node.js
-- Express
-- Supabase (Postgres + Auth + Storage)
-- PDFKit (document generation)
-- QRCode (payment info QR rendering)
+- Node.js + Express (modular `src/modules/*`)
+- PostgreSQL + Prisma ORM
+- JWT authentication + bcrypt
+- Redis (caching; optional at runtime)
+- PDFKit + QRCode
 
 ### Frontend
 - HTML/CSS/Vanilla JavaScript
-- Supabase JS client
+- JWT via `public/js/api-client.js`
 - Responsive mobile-first UI patterns
 
 ---
@@ -104,13 +104,13 @@ It combines:
 
 ```text
 .
-├── controllers/         # API controller logic
-├── routes/              # Express routes
-├── utils/               # Supabase + PDF utilities
+├── src/                 # API (modules, middleware, config)
+├── prisma/              # Schema + migrations
 ├── public/              # Frontend pages, JS, CSS
-├── DATABASE-SETUP.sql   # Supabase schema + policies
-├── server.js            # App entrypoint
-└── package.json
+├── web/                 # Vite marketing homepage
+├── docker-compose.yml   # Local Postgres + Redis
+├── render.yaml          # Render blueprint
+└── ARCHITECTURE.md      # Backend design notes
 ```
 
 ---
@@ -119,7 +119,7 @@ It combines:
 
 ### Prerequisites
 - Node.js 18+ (or newer)
-- Supabase project
+- Docker (for local Postgres + Redis)
 
 ### 1) Install dependencies
 
@@ -127,28 +127,23 @@ It combines:
 npm install
 ```
 
-### 2) Configure environment variables
-
-Create `.env`:
-
-```env
-PORT=3000
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_KEY=your_supabase_service_role_key
-NODE_ENV=development
-APP_BASE_URL=http://localhost:3000
-```
-
-### 3) Run database setup
-- Open Supabase SQL editor
-- Run `DATABASE-SETUP.sql`
-
-### 4) Start app
+### 2) Start PostgreSQL + Redis (Docker)
 
 ```bash
-npm start
+cp .env.example .env
+# Edit .env — set JWT_ACCESS_SECRET and JWT_REFRESH_SECRET (32+ chars each)
+npm run docker:up
 ```
+
+### 3) Migrate database & run API
+
+```bash
+npm install
+npx prisma migrate deploy
+npm run dev
+```
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for backend design. Legacy `DATABASE-SETUP.sql` was for Supabase only.
 
 Open:
 - `http://localhost:3000`
@@ -173,28 +168,26 @@ Render runs this app as a long-lived Node web service (same model as Railway). T
 **Option B — Manual web service**  
 1. **New** → **Web Service** → connect the GitHub repo  
 2. Runtime: **Node**  
-3. Build command: `npm install && npm run build`  
+3. Build command: `npm install && npm run build && npx prisma migrate deploy`  
 4. Start command: `npm start`  
-5. Plan: **Free**
+5. Plan: **Free**  
+6. Add **PostgreSQL** (Render free DB or external) — link `DATABASE_URL`
 
 ### 3) Environment variables
 
-In the service → **Environment**:
-
 ```env
 NODE_ENV=production
-SUPABASE_URL=...
-SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_KEY=...
-APP_BASE_URL=https://naira-invoice.onrender.com
+DATABASE_URL=postgresql://...
+REDIS_URL=redis://...          # Upstash free tier works
+JWT_ACCESS_SECRET=...
+JWT_REFRESH_SECRET=...
+APP_BASE_URL=https://your-app.onrender.com
+CORS_ORIGINS=https://your-app.onrender.com
 ```
 
-Set `APP_BASE_URL` to your actual Render URL (e.g. `https://<service-name>.onrender.com`) after the first deploy. Render sets `PORT` automatically — do not override it.
+Blueprint `render.yaml` provisions the web service + Postgres. Add Redis separately.
 
-### 4) Run SQL migration in Supabase
-- Ensure latest schema exists before production use
-
-### 5) Verify production smoke tests
+### 4) Verify production smoke tests
 - login/signup
 - create quick invoice
 - PDF download
@@ -216,8 +209,9 @@ Main entities:
 - `invoice_events`
 
 Security:
-- Row Level Security policies for user-scoped access
-- service-role enabled paths for backend operations
+- JWT auth on protected API routes
+- Prisma ORM (parameterized queries)
+- Per-user data scoped in services by `userId`
 
 ---
 

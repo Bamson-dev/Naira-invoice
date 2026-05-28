@@ -23,7 +23,7 @@
     </div>
     <ul class="auth-brand-features">
       <li><span>✓</span> Free to get started</li>
-      <li><span>✓</span> Secure cloud storage via Supabase</li>
+      <li><span>✓</span> Secure PostgreSQL-backed storage</li>
       <li><span>✓</span> Works on mobile and desktop</li>
     </ul>
   </aside>
@@ -61,9 +61,8 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=2"></script>
-  <script src="js/auth.js?v=2"></script>
+  <script src="js/api-client.js"></script>
+  <script src="js/auth.js"></script>
   <script>
     checkAuth().catch(() => {});
 
@@ -106,7 +105,7 @@
         showMsg('Account created! Redirecting to sign in…', 'success');
         setTimeout(() => { window.location.href = 'login.html'; }, 1800);
       } catch (err) {
-        showMsg(err.message || 'Could not connect. Check server Supabase settings.', 'error');
+        showMsg(err.message || 'Could not connect. Check that the API and database are running.', 'error');
         btn.disabled = false;
         btn.textContent = 'Create account';
       }
