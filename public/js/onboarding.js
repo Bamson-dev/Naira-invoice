@@ -97,12 +97,14 @@ function showWelcomeModal() {
         <span class="step-counter">Estimated setup time: 3 minutes</span>
       </div>
       <div class="welcome-actions">
-        <button type="button" onclick="startOnboarding()" class="btn btn-primary btn-lg">Start setup</button>
-        <button type="button" onclick="skipOnboarding()" class="btn btn-ghost">Skip for now</button>
+        <button type="button" id="onboarding-start-btn" class="btn btn-primary btn-lg">Start setup</button>
+        <button type="button" id="onboarding-skip-btn" class="btn btn-ghost">Skip for now</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
+  modal.querySelector('#onboarding-start-btn')?.addEventListener('click', startOnboarding);
+  modal.querySelector('#onboarding-skip-btn')?.addEventListener('click', skipOnboarding);
   setTimeout(() => modal.classList.add('show'), 100);
 }
 
@@ -181,12 +183,14 @@ function showStepModal(stepNum) {
         <div class="step-checklist">${bullets}</div>
       </div>
       <div class="step-actions">
-        <button type="button" onclick="closeStepModal()" class="btn btn-ghost">Close</button>
-        <button type="button" onclick="stepPrimaryAction(${stepNum})" class="btn btn-primary">Continue</button>
+        <button type="button" class="btn btn-ghost js-step-close">Close</button>
+        <button type="button" class="btn btn-primary js-step-continue">Continue</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
+  modal.querySelector('.js-step-close')?.addEventListener('click', closeStepModal);
+  modal.querySelector('.js-step-continue')?.addEventListener('click', () => stepPrimaryAction(stepNum));
   setTimeout(() => modal.classList.add('show'), 100);
 }
 
@@ -221,7 +225,7 @@ function showChecklistWidget() {
   widget.innerHTML = `
     <div class="checklist-header">
       <h3>Getting Started Assistant</h3>
-      <button type="button" onclick="dismissChecklist()" class="checklist-close" aria-label="Close checklist">✕</button>
+      <button type="button" class="checklist-close js-dismiss-checklist" aria-label="Close checklist">✕</button>
     </div>
     <div class="checklist-progress">
       <div class="checklist-progress-bar"><div class="checklist-progress-fill" style="width:${percentage}%"></div></div>
@@ -239,6 +243,7 @@ function showChecklistWidget() {
   const container = document.querySelector('.main-content');
   if (!container) return;
   container.insertBefore(widget, container.firstChild);
+  widget.querySelector('.js-dismiss-checklist')?.addEventListener('click', dismissChecklist);
   widget.querySelectorAll('.checklist-item.js-checklist-step').forEach((el) => {
     el.addEventListener('click', () => {
       if (el.classList.contains('completed')) return;
