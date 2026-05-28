@@ -22,7 +22,9 @@ function loadEnv() {
   const parsed = schema.safeParse(process.env);
   if (!parsed.success) {
     const msg = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
-    throw new Error(`Invalid environment: ${msg}`);
+    const hint =
+      ' On Render: add PostgreSQL, link DATABASE_URL, set JWT_ACCESS_SECRET and JWT_REFRESH_SECRET (openssl rand -hex 32). See RENDER-SETUP.md.';
+    throw new Error(`Invalid environment: ${msg}.${hint}`);
   }
   const data = parsed.data;
   return {
