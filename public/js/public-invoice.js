@@ -39,7 +39,7 @@
           <p class="page-subtitle">${profile.business_name || 'Business'} · ${(inv.status || '').toUpperCase()} · Due ${inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}</p>
         </div>
         <div class="public-hero-actions">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="window.open('/api/invoices/${inv.id}/pdf','_blank')">Download PDF</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="public-pdf-btn">Download PDF</button>
           <button type="button" class="btn btn-primary btn-sm" disabled>Pay Now (soon)</button>
         </div>
       </section>
@@ -67,6 +67,12 @@
         </div>
       </section>
     `;
+
+    document.getElementById('public-pdf-btn')?.addEventListener('click', () => {
+      downloadPublicInvoicePdf(token, `${inv.invoice_number || 'invoice'}.pdf`).catch((err) => {
+        alert(err.message || 'Could not download PDF');
+      });
+    });
   } catch (err) {
     console.error(err);
     root.innerHTML = '<p class="message error">Could not load invoice page.</p>';

@@ -679,7 +679,7 @@ Thank you.`;
     }
   };
   document.getElementById('success-pdf-btn').onclick = () => {
-    window.open(`/api/invoices/${invoice.id}/pdf`, '_blank', 'noopener');
+    downloadInvoicePdfWithToast(invoice.id, `${invoice.invoice_number || 'invoice'}.pdf`);
   };
   document.getElementById('save-client-now-btn').onclick = async () => {
     if (!tempClient?.client_name) return closeSuccessModal();

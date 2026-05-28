@@ -114,7 +114,7 @@ function renderTable() {
           <div class="table-actions">
             <button class="btn btn-ghost btn-sm" onclick="shareViaWhatsApp('${inv.id}')">WA</button>
             <button class="btn btn-ghost btn-sm" onclick="copyInvoiceLink('${inv.id}')">Copy</button>
-            <a class="btn btn-ghost btn-sm" href="/api/invoices/${inv.id}/pdf" target="_blank">PDF</a>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="downloadInvoicePdfWithToast('${inv.id}', '${(inv.invoice_number || 'invoice').replace(/'/g, "\\'")}.pdf')">PDF</button>
             <button class="btn btn-ghost btn-sm" onclick="markAsPaid('${inv.id}')">Paid</button>
           </div>
         </td>
@@ -305,7 +305,7 @@ async function runInvoiceSheetAction(action) {
   if (action === 'whatsapp') return shareViaWhatsApp(id);
   if (action === 'copy') return copyInvoiceLink(id);
   if (action === 'paid') return markAsPaid(id);
-  if (action === 'pdf') return window.open(`/api/invoices/${id}/pdf`, '_blank', 'noopener');
+  if (action === 'pdf') return downloadInvoicePdfWithToast(id);
   if (action === 'duplicate') return duplicateInvoice(id);
   if (action === 'delete') return deleteInvoice(id);
 }

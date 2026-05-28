@@ -227,6 +227,19 @@ async function generatePdf(id, userId) {
   return { pdfBuffer, invoiceNumber: invoice.invoice_number };
 }
 
+async function generatePublicPdf(token) {
+  const { invoice } = await getPublicInvoice(token);
+  const profile = await prisma.businessProfile.findUnique({
+    where: { userId: invoice.user_id }
+  });
+  const profileOut = serializeProfile(profile);
+  if (!profileOut) {
+    throw new AppError('Business profile not found for PDF generation.', 400, 'NO_PROFILE');
+  }
+  const pdfBuffer = await generateInvoicePDF(invoice, profileOut);
+  return { pdfBuffer, invoiceNumber: invoice.invoice_number };
+}
+
 function publicToken() {
   return crypto.randomBytes(9).toString('base64url');
 }
@@ -354,6 +367,7 @@ module.exports = {
   updateInvoice,
   deleteInvoice,
   generatePdf,
+  generatePublicPdf,
   createPublicLink,
   getPublicInvoice,
   logPublicEvent,

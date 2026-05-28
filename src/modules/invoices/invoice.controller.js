@@ -48,6 +48,13 @@ async function getPublic(req, res) {
   res.json(data);
 }
 
+async function publicPdf(req, res) {
+  const { pdfBuffer, invoiceNumber } = await invoiceService.generatePublicPdf(req.params.token);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${invoiceNumber}.pdf"`);
+  res.send(pdfBuffer);
+}
+
 async function publicEvent(req, res) {
   const data = await invoiceService.logPublicEvent(
     req.params.token,
@@ -79,6 +86,7 @@ module.exports = {
   pdf,
   publicLink,
   getPublic,
+  publicPdf,
   publicEvent,
   duplicate,
   whatsappReminder

@@ -5,6 +5,7 @@ const controller = require('./invoice.controller');
 
 const router = express.Router();
 
+router.get('/public/:token/pdf', asyncHandler(controller.publicPdf));
 router.get('/public/:token', asyncHandler(controller.getPublic));
 router.post('/public/:token/events', asyncHandler(controller.publicEvent));
 
