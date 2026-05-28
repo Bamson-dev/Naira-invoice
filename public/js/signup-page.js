@@ -29,17 +29,21 @@ form.addEventListener('submit', async (e) => {
   msg.className = 'auth-alert';
 
   try {
-    const { error } = await handleSignup(email, password);
+    const { data, error } = await handleSignup(email, password);
     if (error) {
       showMsg(error.message, 'error');
       btn.disabled = false;
       btn.textContent = 'Create account';
       return;
     }
-    showMsg('Account created! Redirecting to sign in…', 'success');
-    setTimeout(() => {
-      window.location.href = 'login.html';
-    }, 1800);
+    if (!data?.accessToken) {
+      showMsg('Account created but session was not saved. Please sign in.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Create account';
+      return;
+    }
+    showMsg('Account created! Opening your dashboard…', 'success');
+    window.location.replace('dashboard.html');
   } catch (err) {
     showMsg(err.message || 'Could not connect. Check that the API and database are running.', 'error');
     btn.disabled = false;

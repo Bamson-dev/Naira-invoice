@@ -1,6 +1,6 @@
 async function checkAuth(redirectTo = 'dashboard.html') {
   const user = await requireAuth(false);
-  if (user) window.location.href = redirectTo;
+  if (user) window.location.replace(redirectTo);
 }
 
 async function requireAuth(redirectTo = 'login.html') {

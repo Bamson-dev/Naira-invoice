@@ -32,10 +32,8 @@ form.addEventListener('submit', async (e) => {
       btn.textContent = 'Sign in';
       return;
     }
-    showMsg('Success! Redirecting…', 'success');
-    setTimeout(() => {
-      window.location.href = 'dashboard.html';
-    }, 800);
+    showMsg('Success! Opening your dashboard…', 'success');
+    window.location.replace('dashboard.html');
   } catch (err) {
     showMsg(err.message || 'Could not connect. Check that the API and database are running.', 'error');
     btn.disabled = false;
