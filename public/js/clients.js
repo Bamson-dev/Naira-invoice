@@ -11,7 +11,7 @@ let invoices = [];
     handleLogout();
   });
 
-  if (typeof initOnboarding === 'function') initOnboarding(currentUser);
+  if (typeof syncOnboarding === 'function') syncOnboarding(currentUser);
 
   await Promise.all([loadClients(), loadInvoices()]);
   displayClients();

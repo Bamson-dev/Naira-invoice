@@ -1,7 +1,10 @@
+/**
+ * Onboarding — optional, non-blocking. UI only on dashboard unless user opts in.
+ */
 let onboardingProgress = null;
 let currentOnboardingUser = null;
 
-const LS_ONBOARDING = 'ni_onboarding_meta_v2';
+const LS_ONBOARDING = 'ni_onboarding_meta_v3';
 
 function readMeta() {
   try {
@@ -19,68 +22,81 @@ function isDashboardPage() {
   return document.body?.dataset?.appPage === 'dashboard';
 }
 
-async function initOnboarding(user) {
-  currentOnboardingUser = user;
-
-  try {
-    const response = await fetch(`/api/onboarding?user_id=${encodeURIComponent(user.id)}`);
-    const body = await response.json().catch(() => ({}));
-    onboardingProgress = body.progress || null;
-    if (!onboardingProgress) return;
-
-    const meta = readMeta();
-    const hasPaid = await detectFirstPaidInvoice();
-    const firstShared = Boolean(meta.first_invoice_shared);
-
-    document.getElementById('checklist-widget')?.remove();
-    document.getElementById('welcome-modal')?.remove();
-
-    if (hasPaid) {
-      renderPostPaidInsights();
-      return;
-    }
-
-    const complete = isCoreComplete();
-    const brandNew = !onboardingProgress.profile_completed && !onboardingProgress.client_added && !onboardingProgress.invoice_created;
-
-    if (!complete) {
-      if (!onboardingProgress.wizard_dismissed && brandNew) {
-        showWelcomeModal();
-        return;
-      }
-      if (!onboardingProgress.checklist_closed) showChecklistWidget();
-      return;
-    }
-
-    if (complete && !firstShared && isDashboardPage()) {
-      showStep6Success();
-      return;
-    }
-
-    if (!onboardingProgress.checklist_closed) showChecklistWidget();
-  } catch (err) {
-    console.error('Init onboarding error:', err);
-  }
+function isAssistantHidden() {
+  const meta = readMeta();
+  if (meta.assistant_hidden) return true;
+  if (onboardingProgress?.checklist_closed) return true;
+  return false;
 }
 
 function isCoreComplete() {
-  return Boolean(onboardingProgress?.profile_completed && onboardingProgress?.client_added && onboardingProgress?.invoice_created);
+  return Boolean(
+    onboardingProgress?.profile_completed &&
+      onboardingProgress?.client_added &&
+      onboardingProgress?.invoice_created
+  );
 }
 
-async function detectFirstPaidInvoice() {
-  if (!currentOnboardingUser) return false;
+async function loadOnboarding(user) {
+  currentOnboardingUser = user;
   try {
-    const res = await fetch(`/api/invoices?user_id=${encodeURIComponent(currentOnboardingUser.id)}`);
-    const body = await res.json().catch(() => ({}));
-    const rows = Array.isArray(body.invoices) ? body.invoices : [];
-    return rows.some((x) => x.status === 'paid');
-  } catch {
-    return false;
+    const response = await window.apiClient.apiFetch(
+      `/api/onboarding?user_id=${encodeURIComponent(user.id)}`
+    );
+    const body = await response.json().catch(() => ({}));
+    onboardingProgress = body.progress || null;
+    if (onboardingProgress?.checklist_closed) {
+      writeMeta({ assistant_hidden: true });
+    }
+  } catch (err) {
+    console.error('Load onboarding error:', err);
+    onboardingProgress = null;
   }
+}
+
+/** Sync progress only — no UI (profile, clients, create invoice). */
+async function syncOnboarding(user) {
+  await loadOnboarding(user);
+}
+
+/**
+ * Dashboard-only optional assistant.
+ * @param {object} user
+ * @param {{ showUi?: boolean }} options
+ */
+async function initOnboarding(user, options = {}) {
+  const showUi = options.showUi === true;
+  await loadOnboarding(user);
+  if (!showUi || !onboardingProgress) return;
+  renderOnboardingUI();
+}
+
+function renderOnboardingUI() {
+  document.getElementById('checklist-widget')?.remove();
+  document.getElementById('welcome-modal')?.remove();
+  document.getElementById('step-modal')?.remove();
+  document.getElementById('post-paid-insights')?.remove();
+
+  if (isAssistantHidden()) return;
+
+  const meta = readMeta();
+  const brandNew =
+    !onboardingProgress.profile_completed &&
+    !onboardingProgress.client_added &&
+    !onboardingProgress.invoice_created;
+
+  if (brandNew && !meta.welcome_seen && !onboardingProgress.wizard_dismissed) {
+    showWelcomeModal();
+    return;
+  }
+
+  showChecklistWidget();
 }
 
 function showWelcomeModal() {
   if (document.getElementById('welcome-modal')) return;
+  writeMeta({ welcome_seen: true });
+
   const modal = document.createElement('div');
   modal.className = 'onboarding-modal';
   modal.id = 'welcome-modal';
@@ -90,7 +106,7 @@ function showWelcomeModal() {
       <div class="welcome-header">
         <div class="welcome-icon">💸</div>
         <h1>Let's get you paid faster.</h1>
-        <p>This takes less than 3 minutes.</p>
+        <p>Optional 3-minute setup — you can invoice anytime without it.</p>
       </div>
       <div class="step-progress" style="margin-bottom:18px;">
         <div class="step-progress-bar"><div class="step-progress-fill" style="width: 10%"></div></div>
@@ -98,7 +114,7 @@ function showWelcomeModal() {
       </div>
       <div class="welcome-actions">
         <button type="button" id="onboarding-start-btn" class="btn btn-primary btn-lg">Start setup</button>
-        <button type="button" id="onboarding-skip-btn" class="btn btn-ghost">Skip for now</button>
+        <button type="button" id="onboarding-skip-btn" class="btn btn-ghost">Not now — hide assistant</button>
       </div>
     </div>
   `;
@@ -114,9 +130,16 @@ function startOnboarding() {
 }
 
 async function skipOnboarding() {
-  await updateProgress({ wizard_dismissed: true });
+  await hideAssistantPermanent();
+}
+
+async function hideAssistantPermanent() {
+  writeMeta({ assistant_hidden: true, hidden_at: new Date().toISOString() });
+  await updateProgress({ wizard_dismissed: true, checklist_closed: true });
   document.getElementById('welcome-modal')?.remove();
-  showChecklistWidget();
+  document.getElementById('step-modal')?.remove();
+  document.getElementById('checklist-widget')?.remove();
+  document.getElementById('post-paid-insights')?.remove();
 }
 
 const STEP_COPY = {
@@ -166,7 +189,9 @@ function showStepModal(stepNum) {
   modal.className = 'onboarding-modal';
   modal.id = 'step-modal';
   const pct = Math.round((stepNum / 6) * 100);
-  const bullets = data.bullets.map((b) => `<div class="checklist-item"><span class="check-icon">✓</span><span>${b}</span></div>`).join('');
+  const bullets = data.bullets
+    .map((b) => `<div class="checklist-item"><span class="check-icon">✓</span><span>${b}</span></div>`)
+    .join('');
   modal.innerHTML = `
     <div class="onboarding-overlay"></div>
     <div class="onboarding-content step-screen">
@@ -194,7 +219,7 @@ function showStepModal(stepNum) {
   setTimeout(() => modal.classList.add('show'), 100);
 }
 
-window.stepPrimaryAction = function stepPrimaryAction(stepNum) {
+function stepPrimaryAction(stepNum) {
   closeStepModal();
   if (stepNum === 1) return showStepModal(2);
   if (stepNum === 2) return goToProfile();
@@ -202,14 +227,16 @@ window.stepPrimaryAction = function stepPrimaryAction(stepNum) {
   if (stepNum === 4) return goToClients();
   if (stepNum === 5) return goToCreateInvoice();
   if (stepNum === 6) return (window.location.href = 'invoices.html');
-};
+}
 
 function showChecklistWidget() {
-  if (!onboardingProgress) return;
+  if (!onboardingProgress || isAssistantHidden()) return;
+  if (!isDashboardPage()) return;
+
   document.getElementById('checklist-widget')?.remove();
-  if (onboardingProgress.checklist_closed) return;
 
   const meta = readMeta();
+  const collapsed = Boolean(meta.checklist_collapsed);
   const items = [
     { id: 'profile', title: 'Business setup', done: onboardingProgress.profile_completed },
     { id: 'client', title: 'First client added', done: onboardingProgress.client_added },
@@ -220,30 +247,49 @@ function showChecklistWidget() {
   const percentage = (completed / items.length) * 100;
 
   const widget = document.createElement('div');
-  widget.className = 'onboarding-checklist-widget';
+  widget.className = 'onboarding-checklist-widget' + (collapsed ? ' is-collapsed' : '');
   widget.id = 'checklist-widget';
   widget.innerHTML = `
     <div class="checklist-header">
-      <h3>Getting Started Assistant</h3>
-      <button type="button" class="checklist-close js-dismiss-checklist" aria-label="Close checklist">✕</button>
+      <div>
+        <h3>Getting started</h3>
+        <p class="checklist-subtitle">Optional — ${completed} of ${items.length} done</p>
+      </div>
+      <div class="checklist-header-actions">
+        <button type="button" class="btn btn-ghost btn-sm js-toggle-checklist" aria-label="Collapse">${collapsed ? 'Show' : 'Hide'}</button>
+        <button type="button" class="checklist-close js-dismiss-checklist" aria-label="Dismiss forever">✕</button>
+      </div>
     </div>
-    <div class="checklist-progress">
-      <div class="checklist-progress-bar"><div class="checklist-progress-fill" style="width:${percentage}%"></div></div>
-      <span>${completed} of ${items.length} completed</span>
-    </div>
-    <div class="checklist-items">
-      ${items.map((it) => `
+    <div class="checklist-body">
+      <div class="checklist-progress">
+        <div class="checklist-progress-bar"><div class="checklist-progress-fill" style="width:${percentage}%"></div></div>
+      </div>
+      <div class="checklist-items">
+        ${items
+          .map(
+            (it) => `
         <div class="checklist-item js-checklist-step ${it.done ? 'completed' : ''}" data-step="${it.id}">
           <span class="checklist-checkbox">${it.done ? '✓' : ''}</span>
           <span>${it.title}</span>
-        </div>`).join('')}
+        </div>`
+          )
+          .join('')}
+      </div>
+      <button type="button" class="btn btn-text btn-sm js-dismiss-checklist-footer">Don't show this again</button>
     </div>
   `;
 
   const container = document.querySelector('.main-content');
   if (!container) return;
   container.insertBefore(widget, container.firstChild);
-  widget.querySelector('.js-dismiss-checklist')?.addEventListener('click', dismissChecklist);
+
+  widget.querySelector('.js-toggle-checklist')?.addEventListener('click', () => {
+    writeMeta({ checklist_collapsed: !collapsed });
+    showChecklistWidget();
+  });
+  widget.querySelectorAll('.js-dismiss-checklist, .js-dismiss-checklist-footer').forEach((btn) => {
+    btn.addEventListener('click', dismissChecklist);
+  });
   widget.querySelectorAll('.checklist-item.js-checklist-step').forEach((el) => {
     el.addEventListener('click', () => {
       if (el.classList.contains('completed')) return;
@@ -251,13 +297,9 @@ function showChecklistWidget() {
       if (step === 'profile') goToProfile();
       else if (step === 'client') goToClients();
       else if (step === 'invoice') goToCreateInvoice();
-      else showStep6Success();
+      else if (step === 'share') window.location.href = 'invoices.html';
     });
   });
-}
-
-function showStep6Success() {
-  showStepModal(6);
 }
 
 function closeStepModal() {
@@ -269,81 +311,80 @@ function closeStepModal() {
 }
 
 async function dismissChecklist() {
-  await updateProgress({ checklist_closed: true });
-  const widget = document.getElementById('checklist-widget');
-  if (widget) widget.remove();
+  await hideAssistantPermanent();
+  if (typeof showToast === 'function') {
+    showToast('Getting started guide hidden. You can use the app freely.', 'success');
+  }
 }
 
-function goToProfile() { window.location.href = 'profile.html?onboarding=true'; }
-function goToClients() { window.location.href = 'clients.html?onboarding=true'; }
-function goToCreateInvoice() { window.location.href = 'create-invoice.html?onboarding=true'; }
+function goToProfile() {
+  window.location.href = 'profile.html?onboarding=true';
+}
+function goToClients() {
+  window.location.href = 'clients.html?onboarding=true';
+}
+function goToCreateInvoice() {
+  window.location.href = 'create-invoice.html?onboarding=true';
+}
 
 async function updateProgress(updates) {
+  if (!currentOnboardingUser) return;
   try {
-    if (!currentOnboardingUser) return;
-    const res = await fetch('/api/onboarding', {
+    const res = await window.apiClient.apiFetch('/api/onboarding', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: currentOnboardingUser.id, ...updates })
     });
-    await res.json().catch(() => ({}));
-    if (onboardingProgress) Object.assign(onboardingProgress, updates);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok && body.progress) {
+      onboardingProgress = body.progress;
+    } else if (onboardingProgress) {
+      Object.assign(onboardingProgress, updates);
+    }
   } catch (err) {
     console.error('Update progress error:', err);
+    if (onboardingProgress) Object.assign(onboardingProgress, updates);
   }
 }
 
 async function checkStepCompletion(step) {
+  await loadOnboarding(currentOnboardingUser);
   const updates = {};
   if (step === 'profile') updates.profile_completed = true;
   if (step === 'client') updates.client_added = true;
   if (step === 'invoice') updates.invoice_created = true;
   await updateProgress(updates);
 
-  if (isCoreComplete()) {
-    showStep6Success();
+  if (isAssistantHidden() || !isDashboardPage()) return;
+
+  if (isCoreComplete() && !readMeta().share_nudge_shown) {
+    writeMeta({ share_nudge_shown: true });
+    if (typeof showToast === 'function') {
+      showToast('Nice! Share your first invoice from the Invoices page when you are ready.', 'success');
+    }
+    return;
   }
 
-  document.getElementById('checklist-widget')?.remove();
-  if (!onboardingProgress?.checklist_closed) showChecklistWidget();
+  showChecklistWidget();
 }
 
 function markInvoiceShared() {
   writeMeta({ first_invoice_shared: true, first_invoice_shared_at: new Date().toISOString() });
   if (typeof showToast === 'function') {
-    showToast('Nice work. First invoice shared!', 'success');
+    showToast('First invoice shared — great work!', 'success');
   }
   document.getElementById('step-modal')?.remove();
-  document.getElementById('checklist-widget')?.remove();
-  if (!onboardingProgress?.checklist_closed) showChecklistWidget();
-}
-
-async function renderPostPaidInsights() {
-  if (!isDashboardPage()) return;
-  const container = document.querySelector('.main-content');
-  if (!container) return;
-  document.getElementById('checklist-widget')?.remove();
-  if (document.getElementById('post-paid-insights')) return;
-  const card = document.createElement('div');
-  card.id = 'post-paid-insights';
-  card.className = 'onboarding-checklist-widget';
-  card.innerHTML = `
-    <div class="checklist-header"><h3>Operational Insights</h3></div>
-    <div class="checklist-items">
-      <div class="checklist-item completed"><span class="checklist-checkbox">✓</span><span>First paid invoice received</span></div>
-      <div class="checklist-item"><span class="checklist-checkbox"></span><span>Focus on overdue and viewed invoices in Action Required</span></div>
-      <div class="checklist-item"><span class="checklist-checkbox"></span><span>Send reminders daily to get paid faster</span></div>
-    </div>
-  `;
-  container.insertBefore(card, container.firstChild);
+  if (!isAssistantHidden() && isDashboardPage()) showChecklistWidget();
 }
 
 window.initOnboarding = initOnboarding;
+window.syncOnboarding = syncOnboarding;
 window.checkStepCompletion = checkStepCompletion;
 window.startOnboarding = startOnboarding;
 window.skipOnboarding = skipOnboarding;
 window.closeStepModal = closeStepModal;
 window.dismissChecklist = dismissChecklist;
+window.hideAssistantPermanent = hideAssistantPermanent;
 window.goToProfile = goToProfile;
 window.goToClients = goToClients;
 window.goToCreateInvoice = goToCreateInvoice;

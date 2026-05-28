@@ -41,7 +41,7 @@ function sparkline(values = []) {
 
   await loadDashboard();
   processDashboardQueue();
-  if (typeof initOnboarding === 'function') initOnboarding(currentUser);
+  if (typeof initOnboarding === 'function') initOnboarding(currentUser, { showUi: true });
 })();
 
 async function loadDashboard() {

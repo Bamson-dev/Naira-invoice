@@ -1853,6 +1853,37 @@ input::placeholder, textarea::placeholder {
   flex-wrap: wrap;
 }
 
+.onboarding-checklist-widget .checklist-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.onboarding-checklist-widget .checklist-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.onboarding-checklist-widget .checklist-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.onboarding-checklist-widget.is-collapsed .checklist-body {
+  display: none;
+}
+
+.onboarding-checklist-widget .js-dismiss-checklist-footer {
+  margin-top: 12px;
+  width: 100%;
+  justify-content: center;
+}
+
 .onboarding-checklist-widget {
   background: white;
   border: 1px solid var(--border);

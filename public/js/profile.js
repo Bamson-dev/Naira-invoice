@@ -42,9 +42,7 @@ function initProfileTabs() {
     handleLogout();
   });
 
-  if (typeof initOnboarding === 'function') {
-    initOnboarding(currentUser);
-  }
+  if (typeof syncOnboarding === 'function') syncOnboarding(currentUser);
 
   initProfileTabs();
   loadProfile();

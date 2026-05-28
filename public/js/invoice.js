@@ -103,9 +103,7 @@ function setGeneratingState(loading, mode = 'quick') {
   wireTemplateLivePreview();
   wireMoreOptionsCtaPosition();
 
-  if (typeof initOnboarding === 'function') {
-    initOnboarding(currentUser);
-  }
+  if (typeof syncOnboarding === 'function') syncOnboarding(currentUser);
 
   calculateTotals();
   restoreDraft();
