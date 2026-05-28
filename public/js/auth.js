@@ -4,24 +4,38 @@ async function checkAuth(redirectTo = 'dashboard.html') {
 }
 
 async function requireAuth(redirectTo = 'login.html') {
-  const stored = window.apiClient.getStoredUser();
   const token = window.apiClient.getAccessToken();
   if (!token) {
-    if (redirectTo) window.location.href = redirectTo;
+    if (redirectTo) window.location.replace(redirectTo);
     return null;
   }
   try {
     const res = await window.apiClient.apiFetch('/api/auth/me');
+    const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       window.apiClient.clearSession();
-      if (redirectTo) window.location.href = redirectTo;
+      if (redirectTo) {
+        const reason = body.error || (res.status === 401 ? 'Session expired' : 'Authentication failed');
+        sessionStorage.setItem('ni_auth_message', reason);
+        window.location.replace(redirectTo);
+      }
       return null;
     }
-    const { user } = await res.json();
-    window.apiClient.persistSession({ user, accessToken: token, refreshToken: window.apiClient.getRefreshToken() });
+    const user = body.user;
+    if (!user?.id) {
+      window.apiClient.clearSession();
+      if (redirectTo) window.location.replace(redirectTo);
+      return null;
+    }
+    window.apiClient.persistSession({
+      user,
+      accessToken: window.apiClient.getAccessToken(),
+      refreshToken: window.apiClient.getRefreshToken()
+    });
     return user;
-  } catch {
-    if (redirectTo) window.location.href = redirectTo;
+  } catch (err) {
+    console.error('requireAuth failed', err);
+    if (redirectTo) window.location.replace(redirectTo);
     return null;
   }
 }
@@ -68,3 +82,5 @@ window.authHelpers = {
   handleLogin,
   handleLogout
 };
+
+Object.assign(window, window.authHelpers);

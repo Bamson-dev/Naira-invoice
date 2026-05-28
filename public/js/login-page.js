@@ -1,5 +1,13 @@
 checkAuth().catch(() => {});
 
+const authBanner = document.getElementById('message');
+const savedAuthMsg = sessionStorage.getItem('ni_auth_message');
+if (savedAuthMsg && authBanner) {
+  authBanner.textContent = savedAuthMsg;
+  authBanner.className = 'auth-alert error';
+  sessionStorage.removeItem('ni_auth_message');
+}
+
 const form = document.getElementById('login-form');
 const btn = document.getElementById('login-btn');
 const msg = document.getElementById('message');

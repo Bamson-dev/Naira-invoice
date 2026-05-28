@@ -16,23 +16,6 @@
     <div id="import-preview-root"></div>
     <p style="margin-top:24px;"><a href="invoices.html" class="btn btn-secondary">Back to invoices</a></p>
   </div>
-  <script>
-    try {
-      const raw = localStorage.getItem('ni_import_invoice_snapshot');
-      const rows = JSON.parse(raw || '[]');
-      const el = document.getElementById('import-preview-root');
-      if (!Array.isArray(rows) || rows.length === 0) {
-        el.innerHTML = '<p class="message">No import data found.</p>';
-      } else {
-        el.innerHTML = '<div class="card">' + rows.map(r => `
-          <div style="padding:12px;border-bottom:1px solid var(--border);">
-            <strong>${r.invoice_number || '-'}</strong> — ${r.status || ''} — ${r.total_amount || ''} ${r.currency || 'NGN'}
-          </div>
-        `).join('') + '</div>';
-      }
-    } catch (e) {
-      document.getElementById('import-preview-root').innerHTML = '<p class="message error">Could not parse import.</p>';
-    }
-  </script>
+  <script src="js/import-preview.js"></script>
 </body>
 </html>
