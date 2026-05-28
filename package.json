@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "build": "npm install --prefix web && npm run build --prefix web && npx prisma generate",
+    "build": "npm install --prefix web --include=dev && npm run build --prefix web && npx prisma generate",
     "build:web": "npm run build --prefix web",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
