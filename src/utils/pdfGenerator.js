@@ -182,6 +182,13 @@ function drawAmountHero(doc, invoice, theme, isReceipt) {
     .text(formatAmount(invoice.total_amount, invoice), 72, 174, { width: 450, lineGap: 2 });
 }
 
+/** Draw one line of text flush to a right edge (no wrap box — prevents ghosting on long amounts). */
+function drawRightAligned(doc, text, rightX, y, { font = 'Helvetica', size = 10, color = '#000' } = {}) {
+  doc.font(font).fontSize(size).fillColor(color);
+  const w = doc.widthOfString(text);
+  doc.text(text, rightX - w, y, { lineBreak: false });
+}
+
 function drawPartyColumns(doc, invoice, profile, theme) {
   const leftX = 50;
   const rightX = 320;
@@ -210,32 +217,66 @@ function drawPartyColumns(doc, invoice, profile, theme) {
 function drawLineItems(doc, invoice, theme) {
   const items = (invoice.invoice_items || []).filter((it) => String(it.description || '').trim());
   const startY = 360;
-  const x = [50, 340, 395, 470];
-  const widths = [280, 45, 70, 75];
+  const tableLeft = 50;
+  const tableWidth = 495;
+  const rowH = 28;
+  const cols = {
+    descX: 62,
+    descW: 258,
+    qtyRight: 388,
+    unitRight: 468,
+    totalRight: 538
+  };
   const headerRadius = theme.name === 'Ivory Luxe' ? 2 : 8;
-  doc.roundedRect(50, startY, 495, 26, headerRadius).fill(theme.accentSoft);
-  ['Description', 'Qty', 'Unit Price', 'Total'].forEach((h, i) => {
-    doc.fillColor(theme.muted).font('Helvetica-Bold').fontSize(9).text(h, x[i], startY + 9, { width: widths[i], align: i === 0 ? 'left' : 'right' });
+
+  doc.roundedRect(tableLeft, startY, tableWidth, 26, headerRadius).fill(theme.accentSoft);
+  doc.fillColor(theme.muted).font('Helvetica-Bold').fontSize(9);
+  doc.text('Description', cols.descX, startY + 9, { width: cols.descW, lineBreak: false });
+  drawRightAligned(doc, 'Qty', cols.qtyRight, startY + 9, { font: 'Helvetica-Bold', size: 9, color: theme.muted });
+  drawRightAligned(doc, 'Unit Price', cols.unitRight, startY + 9, {
+    font: 'Helvetica-Bold',
+    size: 9,
+    color: theme.muted
+  });
+  drawRightAligned(doc, 'Total', cols.totalRight, startY + 9, {
+    font: 'Helvetica-Bold',
+    size: 9,
+    color: theme.muted
   });
 
   let y = startY + 34;
   items.forEach((item, idx) => {
+    const stripeH = rowH - 2;
     if (theme.name === 'Midnight Editorial') {
-      doc.roundedRect(50, y - 4, 495, 24, 6).fill(idx % 2 === 0 ? '#1F2937' : '#111827');
+      doc.roundedRect(tableLeft, y - 4, tableWidth, stripeH, 6).fill(idx % 2 === 0 ? '#1F2937' : '#111827');
     } else if (idx % 2 === 0) {
-      doc.rect(50, y - 4, 495, 24).fill(theme.background === '#0B0B0C' ? '#0F1116' : '#FAFAFB');
+      doc.rect(tableLeft, y - 4, tableWidth, stripeH).fill(theme.background === '#0B0B0C' ? '#0F1116' : '#FAFAFB');
     }
-    doc.fillColor(theme.text).font('Helvetica').fontSize(10).text(item.description, x[0], y, { width: widths[0] });
-    doc.text(String(item.quantity || 0), x[1], y, { width: widths[1], align: 'right' });
-    doc.text(formatAmount(item.unit_price, invoice), x[2], y, { width: widths[2], align: 'right' });
-    const lineTotal = formatAmount(item.line_total, invoice);
-    doc.font('Helvetica-Bold').fontSize(10);
-    const lineTotalW = doc.widthOfString(lineTotal);
-    doc.text(lineTotal, x[3] + widths[3] - lineTotalW, y, { lineBreak: false });
-    doc.font('Helvetica').fontSize(10);
-    y += 26;
+
+    doc.fillColor(theme.text).font('Helvetica').fontSize(10);
+    doc.text(String(item.description || '').trim(), cols.descX, y, {
+      width: cols.descW,
+      ellipsis: true,
+      lineBreak: false
+    });
+
+    drawRightAligned(doc, String(item.quantity ?? 0), cols.qtyRight, y, {
+      size: 10,
+      color: theme.text
+    });
+    drawRightAligned(doc, formatAmount(item.unit_price, invoice), cols.unitRight, y, {
+      size: 10,
+      color: theme.text
+    });
+    drawRightAligned(doc, formatAmount(item.line_total, invoice), cols.totalRight, y, {
+      font: 'Helvetica-Bold',
+      size: 10,
+      color: theme.text
+    });
+
+    y += rowH;
   });
-  return y + 6;
+  return y + 8;
 }
 
 const SUMMARY_LEFT = 320;
@@ -256,22 +297,19 @@ function formatTaxLabel(invoice) {
  * Returns the Y for the next row.
  */
 function drawSummaryRow(doc, theme, y, label, amount, { bold = false, size = 10 } = {}) {
-  const valueFont = bold ? 'Helvetica-Bold' : 'Helvetica';
   const rowHeight = size + 10;
-
   doc.fillColor(theme.muted).font('Helvetica').fontSize(size);
   doc.text(label, SUMMARY_LEFT, y, { lineBreak: false });
-
-  doc.fillColor(bold ? theme.accent : theme.text).font(valueFont).fontSize(size);
-  const amountWidth = doc.widthOfString(amount);
-  doc.text(amount, SUMMARY_RIGHT - amountWidth, y, { lineBreak: false });
-
+  drawRightAligned(doc, amount, SUMMARY_RIGHT, y, {
+    font: bold ? 'Helvetica-Bold' : 'Helvetica',
+    size,
+    color: bold ? theme.accent : theme.text
+  });
   return y + rowHeight;
 }
 
 function drawSummaryAndPayment(doc, invoice, profile, theme, startY, qrBuffer) {
-  // Keep summary below line-items table (prevents collision with the last row's amount column)
-  let y = Math.max(startY + 16, 430);
+  let y = startY + 12;
 
   y = drawSummaryRow(doc, theme, y, 'Subtotal', formatAmount(invoice.subtotal, invoice));
   if (Number(invoice.tax_amount || 0) > 0) {
