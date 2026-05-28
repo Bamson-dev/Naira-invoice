@@ -22,7 +22,21 @@ function createApp() {
 
   app.set('trust proxy', 1);
 
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          imgSrc: ["'self'", 'data:', 'blob:'],
+          connectSrc: ["'self'"]
+        }
+      }
+    })
+  );
   app.use(compression());
   app.use(requestLogger);
 

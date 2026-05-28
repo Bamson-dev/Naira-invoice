@@ -1,0 +1,48 @@
+checkAuth().catch(() => {});
+
+const form = document.getElementById('signup-form');
+const btn = document.getElementById('signup-btn');
+const msg = document.getElementById('message');
+
+function showMsg(text, type) {
+  msg.textContent = text;
+  msg.className = 'auth-alert ' + type;
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!email || !password) {
+    showMsg('Please fill in all fields.', 'error');
+    return;
+  }
+  if (password.length < 6) {
+    showMsg('Password must be at least 6 characters.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Creating account…';
+  msg.textContent = '';
+  msg.className = 'auth-alert';
+
+  try {
+    const { error } = await handleSignup(email, password);
+    if (error) {
+      showMsg(error.message, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Create account';
+      return;
+    }
+    showMsg('Account created! Redirecting to sign in…', 'success');
+    setTimeout(() => {
+      window.location.href = 'login.html';
+    }, 1800);
+  } catch (err) {
+    showMsg(err.message || 'Could not connect. Check that the API and database are running.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Create account';
+  }
+});
