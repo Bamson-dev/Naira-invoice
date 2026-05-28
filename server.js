@@ -8,6 +8,7 @@ const clientRoutes = require('./routes/clients');
 const invoiceRoutes = require('./routes/invoices');
 const profileRoutes = require('./routes/profile');
 const onboardingRoutes = require('./routes/onboarding');
+const configRoutes = require('./routes/config');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,7 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/config', configRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 

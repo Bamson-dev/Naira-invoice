@@ -1,3 +1,15 @@
-const SUPABASE_URL = 'https://zemwinhdipgqkdfdubps.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplbXdpbmhkaXBncWtkZmR1YnBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwODkyMDQsImV4cCI6MjA5MzY2NTIwNH0.mnaNqWK2YvCKCb87TbKC7A66XMCUFrk25cQ1lxW-NxM';
-window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+window.supabaseClient = null;
+
+window.supabaseReady = (async () => {
+  const res = await fetch('/api/config');
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(body.error || 'Could not load Supabase configuration from server');
+  }
+  const { supabaseUrl, supabaseAnonKey } = body;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Invalid Supabase configuration from server');
+  }
+  window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+  return window.supabaseClient;
+})();
