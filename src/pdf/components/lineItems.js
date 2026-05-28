@@ -68,12 +68,14 @@ function renderLineItems(ctx) {
     drawColumn(doc, theme, TABLE_COLS.qty, textY, String(item.quantity ?? 0), { align: 'right', size: 10 });
     drawColumn(doc, theme, TABLE_COLS.unitPrice, textY, formatMoneyForInvoice(item.unit_price, invoice), {
       align: 'right',
-      size: 10
+      size: 10,
+      money: true
     });
     drawColumn(doc, theme, TABLE_COLS.lineTotal, textY, formatMoneyForInvoice(item.line_total, invoice), {
       align: 'right',
       size: 10,
-      bold: true
+      bold: true,
+      money: true
     });
 
     layout.y += rowH;

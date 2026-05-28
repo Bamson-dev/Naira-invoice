@@ -17,8 +17,38 @@ function fitSingleLine(doc, text, maxWidth) {
   return `${value}…`;
 }
 
-/** Draw text inside a column; right/left aligned, clipped to column bounds. */
+/**
+ * Financial amounts must never truncate or wrap — scale font down until the full string fits.
+ */
+function drawMoneyInColumn(doc, theme, col, y, text, opts = {}) {
+  const bold = opts.bold || false;
+  const fontName = bold ? 'Helvetica-Bold' : 'Helvetica';
+  const color = opts.color || 'text';
+  const maxSize = opts.size || 10;
+  const minSize = opts.minSize || 7;
+  const maxW = colWidth(col);
+  const content = String(text ?? '');
+
+  let size = maxSize;
+  doc.font(fontName).fillColor(theme[color] || color);
+  while (size >= minSize) {
+    doc.fontSize(size);
+    if (doc.widthOfString(content) <= maxW) break;
+    size -= 0.5;
+  }
+
+  const w = doc.widthOfString(content);
+  const x = Math.max(col.left, col.right - w);
+  doc.text(content, x, y, { lineBreak: false });
+  return Math.max(size + 6, 14);
+}
+
+/** Draw text inside a column; descriptions may ellipsis, money must use drawMoneyInColumn. */
 function drawColumn(doc, theme, col, y, text, opts = {}) {
+  if (opts.money) {
+    return drawMoneyInColumn(doc, theme, col, y, text, opts);
+  }
+
   const {
     align = 'left',
     font = 'Helvetica',
@@ -35,7 +65,7 @@ function drawColumn(doc, theme, col, y, text, opts = {}) {
   if (align === 'right') {
     const w = doc.widthOfString(content);
     const x = Math.max(col.left, col.right - w);
-    doc.text(content, x, y, { width: col.right - x, lineBreak: false });
+    doc.text(content, x, y, { lineBreak: false });
     return size + 4;
   }
 
@@ -103,6 +133,7 @@ module.exports = {
   colWidth,
   setStyle,
   fitSingleLine,
+  drawMoneyInColumn,
   drawColumn,
   drawLabel,
   drawWrapped,

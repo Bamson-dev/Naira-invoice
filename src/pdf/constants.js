@@ -24,16 +24,16 @@ const SPACE = {
   xxl: 40
 };
 
-/** Table columns — fixed left/right bounds prevent currency overlap. */
+/** Table columns — money columns are wider; description yields space. */
 const TABLE_COLS = {
-  description: { left: 52, right: 288 },
-  qty: { left: 296, right: 332 },
-  unitPrice: { left: 340, right: 432 },
-  lineTotal: { left: 440, right: 543 }
+  description: { left: 52, right: 246 },
+  qty: { left: 250, right: 284 },
+  unitPrice: { left: 288, right: 408 },
+  lineTotal: { left: 412, right: 543 }
 };
 
 const TOTALS = {
-  width: 248,
+  width: 280,
   get left() {
     return PAGE.contentRight - this.width;
   },
@@ -46,8 +46,8 @@ const ROW = {
   tableHeader: 28,
   tableMin: 32,
   tablePad: 10,
-  summary: 22,
-  summaryTotal: 30
+  summary: 24,
+  summaryTotal: 34
 };
 
 module.exports = { PAGE, SPACE, TABLE_COLS, TOTALS, ROW };

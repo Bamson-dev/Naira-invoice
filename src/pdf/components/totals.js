@@ -23,13 +23,18 @@ function renderTotals(ctx) {
   doc.roundedRect(TOTALS.left, y0, TOTALS.width, blockH, 10).lineWidth(0.75).strokeColor(theme.line).stroke();
 
   let y = y0 + SPACE.md;
-  const labelCol = { left: TOTALS.left + SPACE.md, right: TOTALS.left + TOTALS.width * 0.52 };
-  const valueCol = { left: TOTALS.left + TOTALS.width * 0.52, right: TOTALS.right - SPACE.md };
+  const labelCol = { left: TOTALS.left + SPACE.md, right: TOTALS.left + TOTALS.width * 0.38 };
+  const valueCol = { left: TOTALS.left + TOTALS.width * 0.38, right: TOTALS.right - SPACE.sm };
 
   rows.forEach((row) => {
     setStyle(doc, theme, { font: 'Helvetica', size: 10, color: 'muted' });
     doc.text(row.label, labelCol.left, y, { lineBreak: false });
-    drawColumn(doc, theme, valueCol, y, row.amount, { align: 'right', size: 10, color: 'text' });
+    drawColumn(doc, theme, valueCol, y, row.amount, {
+      align: 'right',
+      size: 10,
+      color: 'text',
+      money: true
+    });
     y += ROW.summary;
   });
 
@@ -41,9 +46,11 @@ function renderTotals(ctx) {
   doc.text('Total', labelCol.left, y, { lineBreak: false });
   drawColumn(doc, theme, valueCol, y, formatMoneyForInvoice(invoice.total_amount, invoice), {
     align: 'right',
-    size: 16,
+    size: 14,
+    minSize: 8,
     bold: true,
-    color: 'accent'
+    color: 'accent',
+    money: true
   });
 
   layout.y = y0 + blockH + SPACE.lg;
