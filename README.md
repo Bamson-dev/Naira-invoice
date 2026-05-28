@@ -155,24 +155,41 @@ Open:
 
 ---
 
-## Deployment Guide (Railway)
+## Deployment Guide (Render — free tier)
+
+Render runs this app as a long-lived Node web service (same model as Railway). The free plan sleeps after ~15 minutes of no traffic; the first request after sleep may take 30–60 seconds (cold start).
 
 ### 1) Push to GitHub
-- Connect local repo to GitHub and push `main`
+- Repo should include `render.yaml` at the root
 
-### 2) Create Railway project
-- Deploy from GitHub repository
+### 2) Create the service on Render
 
-### 3) Set Railway variables
+**Option A — Blueprint (recommended)**  
+1. [dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint**  
+2. Connect `Bamson-dev/Naira-invoice`  
+3. Render reads `render.yaml` and creates the web service  
+4. When prompted, enter secret env vars (see below)
+
+**Option B — Manual web service**  
+1. **New** → **Web Service** → connect the GitHub repo  
+2. Runtime: **Node**  
+3. Build command: `npm install && npm run build`  
+4. Start command: `npm start`  
+5. Plan: **Free**
+
+### 3) Environment variables
+
+In the service → **Environment**:
 
 ```env
-PORT=3000
 NODE_ENV=production
 SUPABASE_URL=...
 SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_KEY=...
-APP_BASE_URL=https://your-railway-domain.up.railway.app
+APP_BASE_URL=https://naira-invoice.onrender.com
 ```
+
+Set `APP_BASE_URL` to your actual Render URL (e.g. `https://<service-name>.onrender.com`) after the first deploy. Render sets `PORT` automatically — do not override it.
 
 ### 4) Run SQL migration in Supabase
 - Ensure latest schema exists before production use
