@@ -3,79 +3,112 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Sign Up - NairaInvoice</title>
+  <title>Create account — Naira Invoice</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/premium.css">
+  <link rel="stylesheet" href="css/auth.css">
 </head>
-<body>
-  <div class="auth-container">
-    <div class="auth-box">
-      <h1 class="auth-logo">🧾 NairaInvoice</h1>
-      <p class="auth-subtitle">Professional invoices for Nigerian businesses</p>
-
-      <div class="auth-form">
-        <h2>Sign Up</h2>
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" placeholder="Email" required autocomplete="email">
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" placeholder="Password (min 6 chars)" required autocomplete="new-password">
-        </div>
-        <button type="button" id="signup-btn" class="btn btn-primary" style="width:100%;">Sign Up</button>
-        <p class="toggle-text">
-          Already have an account?
-          <a href="login.html">Login</a>
-        </p>
-      </div>
-
-      <div id="message" class="message"></div>
+<body class="auth-page">
+  <aside class="auth-brand" aria-hidden="true">
+    <div class="auth-brand-inner">
+      <a href="/" class="auth-brand-logo">
+        <img src="/favicon.svg" alt="" width="32" height="32">
+        Naira Invoice
+      </a>
+      <h1>Start invoicing in minutes</h1>
+      <p>Join Nigerian businesses using Naira Invoice to look professional and get paid on time.</p>
     </div>
-  </div>
+    <ul class="auth-brand-features">
+      <li><span>✓</span> Free to get started</li>
+      <li><span>✓</span> Secure cloud storage via Supabase</li>
+      <li><span>✓</span> Works on mobile and desktop</li>
+    </ul>
+  </aside>
+
+  <main class="auth-panel">
+    <div class="auth-panel-top auth-panel-top--mobile-only">
+      <a href="/" class="auth-panel-logo">
+        <img src="/favicon.svg" alt="" width="28" height="28">
+        Naira Invoice
+      </a>
+      <a href="/" class="auth-back-home">← Home</a>
+    </div>
+
+    <div class="auth-card">
+      <h2>Create your account</h2>
+      <p class="auth-card-lead">Set up access to your invoice dashboard.</p>
+
+      <form id="signup-form" novalidate>
+        <div class="auth-field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@company.com" required autocomplete="email">
+        </div>
+        <div class="auth-field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6">
+        </div>
+        <button type="submit" id="signup-btn" class="auth-submit">Create account</button>
+      </form>
+
+      <p class="auth-footer-text">
+        Already have an account? <a href="login.html">Sign in</a>
+      </p>
+
+      <div id="message" class="auth-alert" role="alert"></div>
+    </div>
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js"></script>
-  <script src="js/auth.js"></script>
+  <script src="js/supabase-client.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
   <script>
-    checkAuth();
+    checkAuth().catch(() => {});
 
-    document.getElementById('signup-btn').addEventListener('click', async () => {
-      const email = document.getElementById('email').value;
+    const form = document.getElementById('signup-form');
+    const btn = document.getElementById('signup-btn');
+    const msg = document.getElementById('message');
+
+    function showMsg(text, type) {
+      msg.textContent = text;
+      msg.className = 'auth-alert ' + type;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const btn = document.getElementById('signup-btn');
-      const msg = document.getElementById('message');
 
       if (!email || !password) {
-        msg.textContent = 'Please fill in all fields';
-        msg.className = 'message error';
+        showMsg('Please fill in all fields.', 'error');
         return;
       }
-
       if (password.length < 6) {
-        msg.textContent = 'Password must be at least 6 characters';
-        msg.className = 'message error';
+        showMsg('Password must be at least 6 characters.', 'error');
         return;
       }
 
       btn.disabled = true;
-      btn.textContent = 'Creating account...';
+      btn.textContent = 'Creating account…';
+      msg.textContent = '';
+      msg.className = 'auth-alert';
 
-      const { data, error } = await handleSignup(email, password);
-
-      if (error) {
-        msg.textContent = error.message;
-        msg.className = 'message error';
+      try {
+        const { error } = await handleSignup(email, password);
+        if (error) {
+          showMsg(error.message, 'error');
+          btn.disabled = false;
+          btn.textContent = 'Create account';
+          return;
+        }
+        showMsg('Account created! Redirecting to sign in…', 'success');
+        setTimeout(() => { window.location.href = 'login.html'; }, 1800);
+      } catch (err) {
+        showMsg(err.message || 'Could not connect. Check server Supabase settings.', 'error');
         btn.disabled = false;
-        btn.textContent = 'Sign Up';
-      } else {
-        msg.textContent = 'Account created! You can now login.';
-        msg.className = 'message success';
-        setTimeout(() => {
-          window.location.href = 'login.html';
-        }, 2000);
+        btn.textContent = 'Create account';
       }
     });
   </script>

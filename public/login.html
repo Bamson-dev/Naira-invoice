@@ -3,73 +3,108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Login - NairaInvoice</title>
+  <title>Sign in — Naira Invoice</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/premium.css">
+  <link rel="stylesheet" href="css/auth.css">
 </head>
-<body>
-  <div class="auth-container">
-    <div class="auth-box">
-      <h1 class="auth-logo">🧾 NairaInvoice</h1>
-      <p class="auth-subtitle">Professional invoices for Nigerian businesses</p>
-
-      <div class="auth-form">
-        <h2>Login</h2>
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" placeholder="Email" required autocomplete="email">
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
-        </div>
-        <button type="button" id="login-btn" class="btn btn-primary" style="width:100%;">Login</button>
-        <p class="toggle-text">
-          Don't have an account?
-          <a href="signup.html">Sign up</a>
-        </p>
-      </div>
-
-      <div id="message" class="message"></div>
+<body class="auth-page">
+  <aside class="auth-brand" aria-hidden="true">
+    <div class="auth-brand-inner">
+      <a href="/" class="auth-brand-logo">
+        <img src="/favicon.svg" alt="" width="32" height="32">
+        Naira Invoice
+      </a>
+      <h1>Send invoices. Get paid faster.</h1>
+      <p>Professional invoicing built for Nigerian freelancers and small businesses — without the accounting headache.</p>
     </div>
-  </div>
+    <ul class="auth-brand-features">
+      <li><span>✓</span> Create and share invoices in under a minute</li>
+      <li><span>✓</span> PDF receipts and public payment links</li>
+      <li><span>✓</span> WhatsApp-friendly follow-ups</li>
+    </ul>
+  </aside>
+
+  <main class="auth-panel">
+    <div class="auth-panel-top auth-panel-top--mobile-only">
+      <a href="/" class="auth-panel-logo">
+        <img src="/favicon.svg" alt="" width="28" height="28">
+        Naira Invoice
+      </a>
+      <a href="/" class="auth-back-home">← Home</a>
+    </div>
+
+    <div class="auth-card">
+      <h2>Welcome back</h2>
+      <p class="auth-card-lead">Sign in to manage invoices, clients, and payments.</p>
+
+      <form id="login-form" novalidate>
+        <div class="auth-field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@company.com" required autocomplete="email">
+        </div>
+        <div class="auth-field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Your password" required autocomplete="current-password">
+        </div>
+        <button type="submit" id="login-btn" class="auth-submit">Sign in</button>
+      </form>
+
+      <p class="auth-footer-text">
+        Don&apos;t have an account? <a href="signup.html">Create one</a>
+      </p>
+
+      <div id="message" class="auth-alert" role="alert"></div>
+    </div>
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js"></script>
-  <script src="js/auth.js"></script>
+  <script src="js/supabase-client.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
   <script>
-    checkAuth();
+    checkAuth().catch(() => {});
 
-    document.getElementById('login-btn').addEventListener('click', async () => {
-      const email = document.getElementById('email').value;
+    const form = document.getElementById('login-form');
+    const btn = document.getElementById('login-btn');
+    const msg = document.getElementById('message');
+
+    function showMsg(text, type) {
+      msg.textContent = text;
+      msg.className = 'auth-alert ' + type;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const btn = document.getElementById('login-btn');
-      const msg = document.getElementById('message');
 
       if (!email || !password) {
-        msg.textContent = 'Please fill in all fields';
-        msg.className = 'message error';
+        showMsg('Please fill in all fields.', 'error');
         return;
       }
 
       btn.disabled = true;
-      btn.textContent = 'Logging in...';
+      btn.textContent = 'Signing in…';
+      msg.textContent = '';
+      msg.className = 'auth-alert';
 
-      const { data, error } = await handleLogin(email, password);
-
-      if (error) {
-        msg.textContent = error.message;
-        msg.className = 'message error';
+      try {
+        const { error } = await handleLogin(email, password);
+        if (error) {
+          showMsg(error.message, 'error');
+          btn.disabled = false;
+          btn.textContent = 'Sign in';
+          return;
+        }
+        showMsg('Success! Redirecting…', 'success');
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+      } catch (err) {
+        showMsg(err.message || 'Could not connect. Check server Supabase settings.', 'error');
         btn.disabled = false;
-        btn.textContent = 'Login';
-      } else {
-        msg.textContent = 'Login successful! Redirecting...';
-        msg.className = 'message success';
-        setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 1000);
+        btn.textContent = 'Sign in';
       }
     });
   </script>
