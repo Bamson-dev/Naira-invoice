@@ -89,6 +89,7 @@ function applyFilters() {
 }
 
 function renderTable() {
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const body = document.getElementById('invoices-table-body');
   const mobile = document.getElementById('invoices-mobile-list');
   if (!filteredInvoices.length) {
@@ -104,8 +105,8 @@ function renderTable() {
     return `
       <tr class="swipe-row" data-id="${inv.id}">
         <td><input type="checkbox" ${selectedIds.has(inv.id) ? 'checked' : ''} onchange="toggleSelect('${inv.id}', this.checked)"></td>
-        <td>${inv.invoice_number}</td>
-        <td>${inv.clients?.client_name || 'N/A'}</td>
+        <td>${esc(inv.invoice_number)}</td>
+        <td>${esc(inv.clients?.client_name || 'N/A')}</td>
         <td><span class="status-badge status-${normStatus}">${normStatus.toUpperCase()}</span></td>
         <td>${viewed}</td>
         <td>${money(inv)}</td>
@@ -128,11 +129,11 @@ function renderTable() {
       return `
       <article class="mobile-invoice-card swipe-row" data-id="${inv.id}">
         <div class="mobile-invoice-head">
-          <strong>${inv.invoice_number}</strong>
+          <strong>${esc(inv.invoice_number)}</strong>
           <span class="status-badge status-${normStatus}">${normStatus.toUpperCase()}</span>
         </div>
         <p class="mobile-amount">${money(inv)}</p>
-        <p class="page-subtitle">${inv.clients?.client_name || 'N/A'} · Due ${inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}</p>
+        <p class="page-subtitle">${esc(inv.clients?.client_name || 'N/A')} · Due ${inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}</p>
         <div class="mobile-card-footer">
           <button class="btn btn-primary btn-sm" onclick="openInvoicePrimary('${inv.id}')">Open Invoice</button>
           <button class="btn btn-ghost btn-sm icon-only-btn" aria-label="More actions" onclick="openInvoiceActionsSheet('${inv.id}')">⋯</button>
@@ -321,7 +322,7 @@ function exportToCSV() {
     Number(inv.total_amount || 0).toFixed(2),
     inv.due_date || 'N/A'
   ]);
-  const csv = [headers.join(','), ...rows.map((r)=>r.map((c)=>`"${String(c).replace(/"/g,'""')}"`).join(','))].join('\\n');
+  const csv = [headers.join(','), ...rows.map((r)=>r.map((c)=>`"${String(c).replace(/"/g,'""')}"`).join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

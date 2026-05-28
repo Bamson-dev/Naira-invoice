@@ -57,6 +57,14 @@ function createApp() {
     })
   );
 
+  const authRateLimit = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: Number(process.env.AUTH_RATE_LIMIT_MAX || 30),
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many authentication attempts. Try again later.' }
+  });
+
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true }));
 
@@ -64,7 +72,7 @@ function createApp() {
     res.json({ ok: true, service: 'naira-invoice', ts: new Date().toISOString() });
   });
 
-  app.use('/api/auth', authRoutes);
+  app.use('/api/auth', authRateLimit, authRoutes);
   app.use('/api/profile', profileRoutes);
   app.use('/api/clients', clientRoutes);
   app.use('/api/invoices', invoiceRoutes);

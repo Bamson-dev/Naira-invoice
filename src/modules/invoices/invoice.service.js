@@ -1,7 +1,13 @@
 const crypto = require('crypto');
 const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/AppError');
-const { cacheDel } = require('../../config/redis');
+const { invalidateUserCaches } = require('../../utils/cacheInvalidate');
+const { assertClientOwned } = require('../../utils/assertClientOwned');
+const {
+  computeLineItems,
+  computeTotals,
+  assertClientTotalsMatch
+} = require('../../utils/invoiceTotals');
 const { generateInvoicePDF } = require('../../utils/pdfGenerator');
 const {
   serializeInvoice,
@@ -67,30 +73,33 @@ async function markPaid(id, userId) {
       paymentDate: row.paymentDate || new Date()
     }
   });
-  await cacheDel(`invoices:${userId}:*`);
+  await invalidateUserCaches(userId);
   return serializeInvoice(updated);
 }
 
-function buildInvoiceData(body, invoiceNumber) {
-  const inv = body.invoice || body;
+function buildInvoiceData(inv, invoiceNumber, totals) {
+  const allowedStatuses = new Set(['draft', 'sent', 'overdue']);
+  let status = inv.status || 'draft';
+  if (!allowedStatuses.has(status)) status = 'draft';
+
   return {
     userId: inv.user_id,
     clientId: inv.client_id || null,
     invoiceNumber,
     invoiceType: inv.invoice_type || 'invoice',
-    status: inv.status || 'draft',
+    status,
     invoiceDate: new Date(inv.invoice_date || Date.now()),
     dueDate: inv.due_date ? new Date(inv.due_date) : null,
-    subtotal: inv.subtotal,
-    taxPercentage: inv.tax_percentage ?? null,
-    taxAmount: inv.tax_amount ?? null,
-    discountType: inv.discount_type ?? null,
-    discountValue: inv.discount_value ?? null,
-    discountAmount: inv.discount_amount ?? null,
-    totalAmount: inv.total_amount,
+    subtotal: totals.subtotal,
+    taxPercentage: totals.taxPercentage,
+    taxAmount: totals.taxAmount,
+    discountType: totals.discountType,
+    discountValue: totals.discountValue,
+    discountAmount: totals.discountAmount,
+    totalAmount: totals.totalAmount,
     notes: inv.notes ?? null,
-    paymentMethod: inv.payment_method ?? null,
-    paymentDate: inv.payment_date ? new Date(inv.payment_date) : null,
+    paymentMethod: null,
+    paymentDate: null,
     invoiceTemplate: inv.invoice_template || 'modern_fintech',
     currency: inv.currency || 'NGN',
     tempClientName: inv.temp_client_name ?? null,
@@ -100,14 +109,29 @@ function buildInvoiceData(body, invoiceNumber) {
   };
 }
 
+async function prepareServerTotals(userId, invoice, items) {
+  const inv = invoice || {};
+  if (inv.client_id) await assertClientOwned(userId, inv.client_id);
+  const lineItems = computeLineItems(items || []);
+  if (!lineItems.length) {
+    throw new AppError('At least one line item with description is required', 400, 'VALIDATION_ERROR');
+  }
+  const totals = computeTotals(lineItems, inv);
+  if (!assertClientTotalsMatch(inv, totals)) {
+    throw new AppError(
+      'Invoice totals do not match line items. Refresh the page and try again.',
+      400,
+      'TOTAL_MISMATCH'
+    );
+  }
+  return { lineItems, totals, inv };
+}
+
 async function createInvoice(userId, { invoice, items }) {
   if (!invoice?.user_id || invoice.user_id !== userId) {
     throw new AppError('invoice.user_id is required', 400, 'VALIDATION_ERROR');
   }
-  const cleanItems = (items || []).filter((i) => i.description && String(i.description).trim());
-  if (!cleanItems.length) {
-    throw new AppError('At least one line item with description is required', 400, 'VALIDATION_ERROR');
-  }
+  const { lineItems, totals } = await prepareServerTotals(userId, invoice, items);
 
   const profile = await prisma.businessProfile.findUnique({ where: { userId } });
   if (!profile) {
@@ -124,16 +148,16 @@ async function createInvoice(userId, { invoice, items }) {
 
   const created = await prisma.$transaction(async (tx) => {
     const invRow = await tx.invoice.create({
-      data: buildInvoiceData({ invoice }, invoiceNumber)
+      data: buildInvoiceData(invoice, invoiceNumber, totals)
     });
     await tx.invoiceItem.createMany({
-      data: cleanItems.map((item, index) => ({
+      data: lineItems.map((item, index) => ({
         invoiceId: invRow.id,
-        description: String(item.description).trim(),
+        description: item.description,
         quantity: item.quantity,
         unitPrice: item.unit_price,
         lineTotal: item.line_total,
-        sortOrder: index
+        sortOrder: item.sort_order ?? index
       }))
     });
     await tx.businessProfile.update({
@@ -143,7 +167,7 @@ async function createInvoice(userId, { invoice, items }) {
     return invRow;
   });
 
-  await cacheDel(`invoices:${userId}:*`);
+  await invalidateUserCaches(userId);
   return fetchInvoiceWithRelations(created.id);
 }
 
@@ -159,28 +183,21 @@ async function getInvoice(id, userId) {
 async function updateInvoice(id, userId, { invoice, items }) {
   const existing = await prisma.invoice.findFirst({ where: { id, userId, deletedAt: null } });
   if (!existing) throw new AppError('Invoice not found', 404, 'NOT_FOUND');
-
-  const cleanItems = (items || []).filter((i) => i.description && String(i.description).trim());
-  if (!cleanItems.length) {
-    throw new AppError('At least one line item with description is required', 400, 'VALIDATION_ERROR');
+  if (!invoice || typeof invoice !== 'object') {
+    throw new AppError('invoice payload is required', 400, 'VALIDATION_ERROR');
   }
+  if (existing.status === 'paid') {
+    throw new AppError('Paid invoices cannot be edited. Duplicate to create a new draft.', 400, 'INVOICE_LOCKED');
+  }
+
+  const { lineItems, totals } = await prepareServerTotals(userId, invoice, items);
 
   const fieldMap = {
     client_id: (v) => ({ clientId: v || null }),
     invoice_type: (v) => ({ invoiceType: v }),
-    status: (v) => ({ status: v }),
     invoice_date: (v) => ({ invoiceDate: new Date(v) }),
     due_date: (v) => ({ dueDate: v ? new Date(v) : null }),
-    payment_date: (v) => ({ paymentDate: v ? new Date(v) : null }),
-    subtotal: (v) => ({ subtotal: v }),
-    tax_percentage: (v) => ({ taxPercentage: v }),
-    tax_amount: (v) => ({ taxAmount: v }),
-    discount_type: (v) => ({ discountType: v }),
-    discount_value: (v) => ({ discountValue: v }),
-    discount_amount: (v) => ({ discountAmount: v }),
-    total_amount: (v) => ({ totalAmount: v }),
     notes: (v) => ({ notes: v }),
-    payment_method: (v) => ({ paymentMethod: v }),
     invoice_template: (v) => ({ invoiceTemplate: v }),
     currency: (v) => ({ currency: v }),
     temp_client_name: (v) => ({ tempClientName: v }),
@@ -188,7 +205,15 @@ async function updateInvoice(id, userId, { invoice, items }) {
     temp_client_phone: (v) => ({ tempClientPhone: v }),
     temp_client_address: (v) => ({ tempClientAddress: v })
   };
-  const updateData = {};
+  const updateData = {
+    subtotal: totals.subtotal,
+    taxPercentage: totals.taxPercentage,
+    taxAmount: totals.taxAmount,
+    discountType: totals.discountType,
+    discountValue: totals.discountValue,
+    discountAmount: totals.discountAmount,
+    totalAmount: totals.totalAmount
+  };
   for (const [key, map] of Object.entries(fieldMap)) {
     if (invoice[key] !== undefined) Object.assign(updateData, map(invoice[key]));
   }
@@ -197,18 +222,18 @@ async function updateInvoice(id, userId, { invoice, items }) {
     await tx.invoice.update({ where: { id }, data: updateData });
     await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
     await tx.invoiceItem.createMany({
-      data: cleanItems.map((item, index) => ({
+      data: lineItems.map((item, index) => ({
         invoiceId: id,
-        description: String(item.description).trim(),
+        description: item.description,
         quantity: item.quantity,
         unitPrice: item.unit_price,
         lineTotal: item.line_total,
-        sortOrder: index
+        sortOrder: item.sort_order ?? index
       }))
     });
   });
 
-  await cacheDel(`invoices:${userId}:*`);
+  await invalidateUserCaches(userId);
   return { success: true };
 }
 
@@ -216,7 +241,7 @@ async function deleteInvoice(id, userId) {
   const row = await prisma.invoice.findFirst({ where: { id, userId, deletedAt: null } });
   if (!row) throw new AppError('Invoice not found', 404, 'NOT_FOUND');
   await prisma.invoice.update({ where: { id }, data: { deletedAt: new Date() } });
-  await cacheDel(`invoices:${userId}:*`);
+  await invalidateUserCaches(userId);
   return { success: true };
 }
 
@@ -244,11 +269,30 @@ function publicToken() {
   return crypto.randomBytes(9).toString('base64url');
 }
 
+function publicLinkExpiry() {
+  const expiresAt = new Date();
+  expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+  return expiresAt;
+}
+
 async function getOrCreatePublicLink(invoiceId, userId) {
   const existing = await prisma.invoicePublicLink.findFirst({ where: { invoiceId } });
-  if (existing) return existing;
+  if (existing) {
+    if (!existing.expiresAt) {
+      return prisma.invoicePublicLink.update({
+        where: { id: existing.id },
+        data: { expiresAt: publicLinkExpiry() }
+      });
+    }
+    return existing;
+  }
   return prisma.invoicePublicLink.create({
-    data: { invoiceId, userId, publicToken: publicToken() }
+    data: {
+      invoiceId,
+      userId,
+      publicToken: publicToken(),
+      expiresAt: publicLinkExpiry()
+    }
   });
 }
 
@@ -304,9 +348,12 @@ async function getPublicInvoice(token) {
 async function logPublicEvent(token, eventType, req) {
   const link = await prisma.invoicePublicLink.findUnique({
     where: { publicToken: token },
-    select: { invoiceId: true }
+    select: { invoiceId: true, expiresAt: true }
   });
   if (!link) throw new AppError('Link not found', 404, 'NOT_FOUND');
+  if (link.expiresAt && link.expiresAt < new Date()) {
+    throw new AppError('Invoice link has expired', 410, 'EXPIRED');
+  }
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString();
   const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 24);
   await prisma.invoiceEvent.create({
@@ -316,8 +363,25 @@ async function logPublicEvent(token, eventType, req) {
 }
 
 async function duplicateInvoice(id, userId) {
-  const original = await fetchInvoiceWithRelations(id);
-  if (original.user_id !== userId) throw new AppError('Not allowed', 403, 'FORBIDDEN');
+  const row = await prisma.invoice.findFirst({
+    where: { id, userId, deletedAt: null },
+    include: {
+      client: true,
+      items: { orderBy: { sortOrder: 'asc' } }
+    }
+  });
+  if (!row) throw new AppError('Invoice not found', 404, 'NOT_FOUND');
+  const original = serializeInvoice(row);
+  original.clients = row.client
+    ? serializeClient(row.client)
+    : tempClientFromInvoice(original);
+  original.invoice_items = row.items.map((item) => ({
+    description: item.description,
+    quantity: Number(item.quantity),
+    unit_price: Number(item.unitPrice),
+    line_total: Number(item.lineTotal)
+  }));
+
   return createInvoice(userId, {
     invoice: {
       user_id: userId,

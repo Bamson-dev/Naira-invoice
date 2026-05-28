@@ -1,4 +1,5 @@
 function showToast(message, type = 'success') {
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
 
@@ -6,7 +7,7 @@ function showToast(message, type = 'success') {
 
   toast.innerHTML = `
     <div class="toast-icon">${icon}</div>
-    <div class="toast-message">${message}</div>
+    <div class="toast-message">${esc(message)}</div>
   `;
 
   document.body.appendChild(toast);

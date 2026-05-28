@@ -176,7 +176,7 @@ model InvoiceItem {
 
 model InvoicePublicLink {
   id          String    @id @default(uuid()) @db.Uuid
-  invoiceId   String    @map("invoice_id") @db.Uuid
+  invoiceId   String    @unique @map("invoice_id") @db.Uuid
   userId      String    @map("user_id") @db.Uuid
   publicToken String    @unique @map("public_token")
   expiresAt   DateTime? @map("expires_at")
@@ -186,7 +186,6 @@ model InvoicePublicLink {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([publicToken])
-  @@index([invoiceId])
   @@map("invoice_public_links")
 }
 

@@ -259,6 +259,7 @@ function duplicateLineItem(id) {
 }
 
 function renderLineItems() {
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const container = document.getElementById('line-items');
 
   container.innerHTML = lineItems.map((item, index) => `
@@ -268,7 +269,7 @@ function renderLineItems() {
         <button type="button" class="btn btn-ghost btn-sm" onclick="duplicateLineItem(${item.id})">Duplicate</button>
       </div>
       <label>Description</label>
-      <input type="text" placeholder="Description" value="${item.description}"
+      <input type="text" placeholder="Description" value="${esc(item.description)}"
         onchange="updateLineItem(${item.id}, 'description', this.value)">
       <label>Quantity</label>
       <input type="number" inputmode="decimal" placeholder="Qty" value="${item.quantity}" min="0" step="0.01"
@@ -347,7 +348,7 @@ function rowsWithDescription() {
 function calculateTotals() {
   const subtotal = rowsWithDescription().reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
 
-  const taxPercentage = parseFloat(document.getElementById('tax-percentage').value) || 0;
+  const taxPercentage = Math.min(100, Math.max(0, parseFloat(document.getElementById('tax-percentage').value) || 0));
   const taxAmount = (subtotal * taxPercentage) / 100;
 
   const discountValue = parseFloat(document.getElementById('discount-value').value) || 0;
@@ -378,7 +379,7 @@ async function saveInvoice() {
   }
 
   const subtotal = rowsForSave.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-  const taxPercentage = parseFloat(document.getElementById('tax-percentage').value) || 0;
+  const taxPercentage = Math.min(100, Math.max(0, parseFloat(document.getElementById('tax-percentage').value) || 0));
   const taxAmount = (subtotal * taxPercentage) / 100;
   const discountValue = parseFloat(document.getElementById('discount-value').value) || 0;
   const discountType = discountValue ? 'fixed' : null;
@@ -482,7 +483,7 @@ async function createQuickInvoice() {
     client_phone: String(document.getElementById('quick-client-phone')?.value || '').trim() || null,
     client_address: String(document.getElementById('quick-client-address')?.value || '').trim() || null
   };
-  const taxPercentage = parseFloat(document.getElementById('tax-percentage')?.value || 0) || 0;
+  const taxPercentage = Math.min(100, Math.max(0, parseFloat(document.getElementById('tax-percentage')?.value || 0) || 0));
   const taxAmount = (amount * taxPercentage) / 100;
   const discountValue = parseFloat(document.getElementById('discount-value')?.value || 0) || 0;
   const total = amount + taxAmount - discountValue;

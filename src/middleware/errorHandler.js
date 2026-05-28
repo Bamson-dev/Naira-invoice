@@ -1,12 +1,32 @@
 const { AppError } = require('../utils/AppError');
 const { logger } = require('../config/logger');
 
+function mapPrismaError(err) {
+  if (!err || typeof err.code !== 'string' || !err.code.startsWith('P')) return err;
+  if (err.code === 'P2002') {
+    return new AppError('A record with this value already exists', 409, 'CONFLICT');
+  }
+  if (err.code === 'P2025') {
+    return new AppError('Record not found', 404, 'NOT_FOUND');
+  }
+  if (err.code === 'P2003') {
+    return new AppError('Related record not found', 400, 'VALIDATION_ERROR');
+  }
+  return err;
+}
+
 function notFoundHandler(req, res) {
   res.status(404).json({ error: 'Not found', code: 'NOT_FOUND' });
 }
 
 function errorHandler(err, req, res, next) {
   if (res.headersSent) return next(err);
+
+  if (err?.name === 'MulterError') {
+    return res.status(400).json({ error: err.message, code: 'UPLOAD_ERROR' });
+  }
+
+  err = mapPrismaError(err);
 
   const status = err.statusCode || 500;
   const code = err.code || 'INTERNAL_ERROR';
@@ -25,4 +45,4 @@ function errorHandler(err, req, res, next) {
   });
 }
 
-module.exports = { notFoundHandler, errorHandler };
+module.exports = { notFoundHandler, errorHandler, mapPrismaError };

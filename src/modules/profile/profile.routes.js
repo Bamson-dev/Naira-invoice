@@ -7,6 +7,10 @@ const router = express.Router();
 router.use(authenticate(), assertUserScope);
 router.get('/', asyncHandler(controller.get));
 router.post('/', asyncHandler(controller.upsert));
-router.post('/upload-logo', controller.uploadLogo);
+router.post(
+  '/upload-logo',
+  controller.uploadLogoMiddleware,
+  asyncHandler(controller.uploadLogo)
+);
 
 module.exports = router;

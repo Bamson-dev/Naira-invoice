@@ -3,6 +3,17 @@ const fs = require('fs/promises');
 const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/AppError');
 const { serializeProfile } = require('../../utils/serialize');
+const { isAllowedLogoUrl } = require('../../utils/safeUrl');
+const { invalidateUserCaches } = require('../../utils/cacheInvalidate');
+
+const ALLOWED_LOGO_MIME = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif']);
+const MIME_EXT = {
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/jpg': '.jpg',
+  'image/webp': '.webp',
+  'image/gif': '.gif'
+};
 
 async function get(userId) {
   const profile = await prisma.businessProfile.findUnique({ where: { userId } });
@@ -12,6 +23,11 @@ async function get(userId) {
 async function upsert(userId, body) {
   if (!body.business_name?.trim()) {
     throw new AppError('business_name is required', 400, 'VALIDATION_ERROR');
+  }
+  if (body.logo_url !== undefined && body.logo_url !== null && body.logo_url !== '') {
+    if (!isAllowedLogoUrl(body.logo_url)) {
+      throw new AppError('Logo must be uploaded through the app', 400, 'VALIDATION_ERROR');
+    }
   }
   const data = {
     businessName: String(body.business_name).trim(),
@@ -45,13 +61,20 @@ async function upsert(userId, body) {
     update: { profileCompleted: true }
   });
 
+  await invalidateUserCaches(userId);
   return serializeProfile(profile);
 }
 
 async function saveLogo(userId, file, baseUrl) {
+  if (!file?.buffer?.length) {
+    throw new AppError('No file uploaded', 400, 'VALIDATION_ERROR');
+  }
+  if (!ALLOWED_LOGO_MIME.has(file.mimetype)) {
+    throw new AppError('Logo must be PNG, JPEG, WebP, or GIF', 400, 'VALIDATION_ERROR');
+  }
   const uploadDir = path.resolve(process.env.UPLOAD_DIR || 'uploads/logos');
   await fs.mkdir(uploadDir, { recursive: true });
-  const ext = path.extname(file.originalname) || '.png';
+  const ext = MIME_EXT[file.mimetype] || '.png';
   const fileName = `${userId}-${Date.now()}${ext}`;
   const diskPath = path.join(uploadDir, fileName);
   await fs.writeFile(diskPath, file.buffer);
@@ -61,6 +84,7 @@ async function saveLogo(userId, file, baseUrl) {
     create: { userId, businessName: 'My Business', logoUrl },
     update: { logoUrl }
   });
+  await invalidateUserCaches(userId);
   return { logo_url: logoUrl };
 }
 

@@ -118,14 +118,31 @@ function statusColor(invoice, theme) {
   return theme.statusPending;
 }
 
+const fs = require('fs/promises');
+const path = require('path');
+const { isAllowedLogoUrl } = require('./safeUrl');
+
 async function loadLogoBuffer(logoUrl) {
   try {
-    if (!logoUrl) return null;
+    if (!logoUrl || !isAllowedLogoUrl(logoUrl)) return null;
+
+    if (logoUrl.startsWith('/uploads/logos/')) {
+      const diskPath = path.join(process.cwd(), logoUrl.replace(/^\//, ''));
+      return await fs.readFile(diskPath);
+    }
+
+    const base = String(process.env.APP_BASE_URL || '').trim().replace(/\/+$/, '');
+    if (!base) return null;
     const parsed = new URL(logoUrl);
-    if (!/^https?:$/.test(parsed.protocol)) return null;
-    const res = await fetch(logoUrl);
+    const baseUrl = new URL(base);
+    if (parsed.origin !== baseUrl.origin || !parsed.pathname.startsWith('/uploads/logos/')) {
+      return null;
+    }
+
+    const res = await fetch(logoUrl, { redirect: 'error', signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
     const ab = await res.arrayBuffer();
+    if (ab.byteLength > 2 * 1024 * 1024) return null;
     return Buffer.from(ab);
   } catch {
     return null;
@@ -158,7 +175,11 @@ function drawAmountHero(doc, invoice, theme, isReceipt) {
     doc.roundedRect(50, 136, 495, isReceipt ? 78 : 96, 14).fill(theme.accentSoft);
   }
   doc.fillColor(theme.muted).font('Helvetica').fontSize(10).text(isReceipt ? 'Amount Paid' : 'Amount Due', 72, 158);
-  doc.fillColor(theme.accent).font('Helvetica-Bold').fontSize(isReceipt ? 32 : 36).text(formatAmount(invoice.total_amount, invoice), 72, 174);
+  doc
+    .fillColor(theme.accent)
+    .font('Helvetica-Bold')
+    .fontSize(isReceipt ? 28 : 30)
+    .text(formatAmount(invoice.total_amount, invoice), 72, 174, { width: 450, lineGap: 2 });
 }
 
 function drawPartyColumns(doc, invoice, profile, theme) {
@@ -173,10 +194,16 @@ function drawPartyColumns(doc, invoice, profile, theme) {
   if (fromContact) doc.text(fromContact, leftX, top + 68, { width: 230 });
 
   doc.fillColor(theme.muted).font('Helvetica').fontSize(9).text('BILL TO', rightX, top);
-  doc.fillColor(theme.text).font('Helvetica-Bold').fontSize(12).text(invoice.clients?.client_name || 'Client', rightX, top + 14);
+  const billToName =
+    invoice.clients?.client_name || invoice.temp_client_name || 'Client';
+  const billToAddress =
+    invoice.clients?.client_address || invoice.temp_client_address || null;
+  doc.fillColor(theme.text).font('Helvetica-Bold').fontSize(12).text(billToName, rightX, top + 14);
   doc.font('Helvetica').fontSize(10).fillColor(theme.muted);
-  if (invoice.clients?.client_address) doc.text(invoice.clients.client_address, rightX, top + 32, { width: 225 });
-  const toContact = [invoice.clients?.client_email, invoice.clients?.client_phone].filter(Boolean).join(' · ');
+  if (billToAddress) doc.text(billToAddress, rightX, top + 32, { width: 225 });
+  const toEmail = invoice.clients?.client_email || invoice.temp_client_email;
+  const toPhone = invoice.clients?.client_phone || invoice.temp_client_phone;
+  const toContact = [toEmail, toPhone].filter(Boolean).join(' · ');
   if (toContact) doc.text(toContact, rightX, top + 68, { width: 225 });
 }
 
@@ -201,44 +228,102 @@ function drawLineItems(doc, invoice, theme) {
     doc.fillColor(theme.text).font('Helvetica').fontSize(10).text(item.description, x[0], y, { width: widths[0] });
     doc.text(String(item.quantity || 0), x[1], y, { width: widths[1], align: 'right' });
     doc.text(formatAmount(item.unit_price, invoice), x[2], y, { width: widths[2], align: 'right' });
-    doc.font('Helvetica-Bold').text(formatAmount(item.line_total, invoice), x[3], y, { width: widths[3], align: 'right' });
+    const lineTotal = formatAmount(item.line_total, invoice);
+    doc.font('Helvetica-Bold').fontSize(10);
+    const lineTotalW = doc.widthOfString(lineTotal);
+    doc.text(lineTotal, x[3] + widths[3] - lineTotalW, y, { lineBreak: false });
+    doc.font('Helvetica').fontSize(10);
     y += 26;
   });
   return y + 6;
 }
 
+const SUMMARY_LEFT = 320;
+const SUMMARY_RIGHT = 545;
+
+function formatTaxLabel(invoice) {
+  const pct = invoice.tax_percentage;
+  if (pct == null || pct === '') return 'Tax';
+  const n = Number(pct);
+  if (!Number.isFinite(n) || n <= 0) return 'Tax';
+  const display = Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+  return `Tax (${display}%)`;
+}
+
+/**
+ * One summary line: label on the left, amount flush-right on a single baseline.
+ * Uses widthOfString (no wrap box) so large NGN totals cannot stack on the next row.
+ * Returns the Y for the next row.
+ */
+function drawSummaryRow(doc, theme, y, label, amount, { bold = false, size = 10 } = {}) {
+  const valueFont = bold ? 'Helvetica-Bold' : 'Helvetica';
+  const rowHeight = size + 10;
+
+  doc.fillColor(theme.muted).font('Helvetica').fontSize(size);
+  doc.text(label, SUMMARY_LEFT, y, { lineBreak: false });
+
+  doc.fillColor(bold ? theme.accent : theme.text).font(valueFont).fontSize(size);
+  const amountWidth = doc.widthOfString(amount);
+  doc.text(amount, SUMMARY_RIGHT - amountWidth, y, { lineBreak: false });
+
+  return y + rowHeight;
+}
+
 function drawSummaryAndPayment(doc, invoice, profile, theme, startY, qrBuffer) {
-  const summaryX = 320;
-  let y = startY;
-  doc.fillColor(theme.muted).font('Helvetica').fontSize(10).text('Subtotal', summaryX, y).fillColor(theme.text).text(formatAmount(invoice.subtotal, invoice), 475, y, { width: 70, align: 'right' });
+  // Keep summary below line-items table (prevents collision with the last row's amount column)
+  let y = Math.max(startY + 16, 430);
+
+  y = drawSummaryRow(doc, theme, y, 'Subtotal', formatAmount(invoice.subtotal, invoice));
   if (Number(invoice.tax_amount || 0) > 0) {
-    y += 16;
-    doc.fillColor(theme.muted).text(`Tax${invoice.tax_percentage ? ` (${invoice.tax_percentage}%)` : ''}`, summaryX, y)
-      .fillColor(theme.text).text(formatAmount(invoice.tax_amount, invoice), 475, y, { width: 70, align: 'right' });
+    y = drawSummaryRow(doc, theme, y, formatTaxLabel(invoice), formatAmount(invoice.tax_amount, invoice));
   }
   if (Number(invoice.discount_amount || 0) > 0) {
-    y += 16;
-    doc.fillColor(theme.muted).text('Discount', summaryX, y).fillColor(theme.text).text(`-${formatAmount(invoice.discount_amount, invoice)}`, 475, y, { width: 70, align: 'right' });
+    y = drawSummaryRow(
+      doc,
+      theme,
+      y,
+      'Discount',
+      `-${formatAmount(invoice.discount_amount, invoice)}`
+    );
   }
-  y += 20;
-  doc.moveTo(summaryX, y).lineTo(545, y).strokeColor(theme.line).stroke();
-  y += 9;
-  doc.fillColor(theme.accent).font('Helvetica-Bold').fontSize(17).text('Total', summaryX, y)
-    .text(formatAmount(invoice.total_amount, invoice), 455, y - 1, { width: 90, align: 'right' });
 
-  const cardY = y + 36;
-  doc.roundedRect(50, cardY, 495, 96, 12).fill(theme.accentSoft);
+  y += 6;
+  doc.moveTo(SUMMARY_LEFT, y).lineTo(SUMMARY_RIGHT, y).strokeColor(theme.line).lineWidth(1).stroke();
+  y += 12;
+
+  y = drawSummaryRow(doc, theme, y, 'Total', formatAmount(invoice.total_amount, invoice), {
+    bold: true,
+    size: 16
+  });
+
+  const cardY = y + 28;
+  const bankName = profile.bank_name || profile.bankName;
+  const accountNo = profile.account_number || profile.accountNumber;
+  const accountName = profile.account_name || profile.accountName;
+  const bankLine = bankName ? `Bank: ${bankName}` : 'Bank: —';
+  const acctLine = accountNo ? `Account No: ${accountNo}` : 'Account No: —';
+  const nameLine = accountName ? `Account Name: ${accountName}` : 'Account Name: —';
+  const cardH = !bankName && !accountNo ? 108 : 96;
+  doc.roundedRect(50, cardY, 495, cardH, 12).fill(theme.accentSoft);
   doc.fillColor(theme.text).font('Helvetica-Bold').fontSize(10).text('Payment Details', 70, cardY + 12);
   doc.font('Helvetica').fontSize(10).fillColor(theme.muted)
-    .text(`Bank: ${profile.bank_name || 'N/A'}`, 70, cardY + 31)
-    .text(`Account No: ${profile.account_number || 'N/A'}`, 70, cardY + 46)
-    .text(`Account Name: ${profile.account_name || 'N/A'}`, 70, cardY + 61);
-  doc.text('Payment Instructions:', 320, cardY + 31);
-  doc.fillColor(theme.text).text(invoice.notes || 'Please pay via bank transfer and share proof of payment.', 320, cardY + 46, { width: 140 });
+    .text(bankLine, 70, cardY + 31, { width: 220 })
+    .text(acctLine, 70, cardY + 46, { width: 220 })
+    .text(nameLine, 70, cardY + 61, { width: 220 });
+  if (!bankName && !accountNo) {
+    doc.fillColor(theme.muted).fontSize(8).text('Add bank details in Profile to show them here.', 70, cardY + 76, { width: 220 });
+  }
+  doc.fillColor(theme.muted).fontSize(10).text('Payment Instructions:', 300, cardY + 31);
+  doc.fillColor(theme.text).text(
+    invoice.notes || 'Please pay via bank transfer and share proof of payment.',
+    300,
+    cardY + 46,
+    { width: 175, lineGap: 2 }
+  );
   if (qrBuffer) {
     try { doc.image(qrBuffer, 486, cardY + 28, { fit: [46, 46] }); } catch {}
   }
-  return cardY + 112;
+  return cardY + cardH + 16;
 }
 
 async function generateInvoicePDF(invoice, profile) {

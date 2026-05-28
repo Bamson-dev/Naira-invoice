@@ -1,4 +1,5 @@
 const invoiceService = require('./invoice.service');
+const { safePdfFilename } = require('../../utils/safeUrl');
 
 async function list(req, res) {
   const userId = req.query.user_id || req.userId;
@@ -34,7 +35,7 @@ async function remove(req, res) {
 async function pdf(req, res) {
   const { pdfBuffer, invoiceNumber } = await invoiceService.generatePdf(req.params.id, req.userId);
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${invoiceNumber}.pdf"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${safePdfFilename(invoiceNumber)}"`);
   res.send(pdfBuffer);
 }
 
@@ -51,7 +52,7 @@ async function getPublic(req, res) {
 async function publicPdf(req, res) {
   const { pdfBuffer, invoiceNumber } = await invoiceService.generatePublicPdf(req.params.token);
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${invoiceNumber}.pdf"`);
+  res.setHeader('Content-Disposition', `attachment; filename="${safePdfFilename(invoiceNumber)}"`);
   res.send(pdfBuffer);
 }
 

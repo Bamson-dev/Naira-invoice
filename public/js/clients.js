@@ -1,6 +1,8 @@
 let currentUser = null;
 let clients = [];
 let invoices = [];
+let savingClient = false;
+let savingClient = false;
 
 (async () => {
   currentUser = await requireAuth();
@@ -40,6 +42,7 @@ function clientStats(clientId) {
 }
 
 function displayClients() {
+  const esc = typeof escapeHtml === 'function' ? escapeHtml : (v) => String(v ?? '');
   const tbody = document.getElementById('clients-list');
   const mobile = document.getElementById('clients-mobile-list');
   if (!clients.length) {
@@ -52,10 +55,10 @@ function displayClients() {
     const st = clientStats(c.id);
     return `
       <tr>
-        <td><strong>${c.client_name}</strong><br><small>${c.client_email || ''}</small></td>
+        <td><strong>${esc(c.client_name)}</strong><br><small>${esc(c.client_email || '')}</small></td>
         <td>₦${st.revenue.toLocaleString()}</td>
         <td>₦${st.unpaid.toLocaleString()}</td>
-        <td>${st.recent ? `${st.recent.invoice_number} · ${new Date(st.recent.invoice_date).toLocaleDateString()}` : 'N/A'}</td>
+        <td>${st.recent ? `${esc(st.recent.invoice_number)} · ${new Date(st.recent.invoice_date).toLocaleDateString()}` : 'N/A'}</td>
         <td><span class="status-badge ${st.reliability >= 80 ? 'status-paid' : st.reliability >= 50 ? 'status-sent' : 'status-overdue'}">${st.reliability}%</span></td>
         <td>
           <div class="table-actions">
@@ -74,7 +77,7 @@ function displayClients() {
       return `
       <article class="mobile-invoice-card">
         <div class="mobile-invoice-head">
-          <strong>${c.client_name}</strong>
+          <strong>${esc(c.client_name)}</strong>
           <span class="status-badge ${st.reliability >= 80 ? 'status-paid' : st.reliability >= 50 ? 'status-sent' : 'status-overdue'}">${st.reliability}%</span>
         </div>
         <p class="page-subtitle">Unpaid: ₦${st.unpaid.toLocaleString()} · Revenue: ₦${st.revenue.toLocaleString()}</p>
@@ -121,6 +124,8 @@ function closeClientModal() {
 }
 
 async function saveClient() {
+  if (savingClient) return;
+  savingClient = true;
   const id = document.getElementById('client-id').value;
   const payload = {
     user_id: currentUser.id,
@@ -133,6 +138,7 @@ async function saveClient() {
 
   if (!payload.client_name) {
     showToast('Client name is required', 'error');
+    savingClient = false;
     return;
   }
 
@@ -147,6 +153,7 @@ async function saveClient() {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     showToast(body.error || 'Could not save client', 'error');
+    savingClient = false;
     return;
   }
 
@@ -159,6 +166,7 @@ async function saveClient() {
   if (urlParams.get('onboarding') === 'true' && typeof checkStepCompletion === 'function') {
     await checkStepCompletion('client');
   }
+  savingClient = false;
 }
 
 async function deleteClient(id) {

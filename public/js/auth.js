@@ -35,7 +35,7 @@ async function requireAuth(redirectTo = 'login.html') {
     return user;
   } catch (err) {
     console.error('requireAuth failed', err);
-    if (redirectTo) window.location.replace(redirectTo);
+    // Network blips should not clear a valid session or bounce the user to login.
     return null;
   }
 }
